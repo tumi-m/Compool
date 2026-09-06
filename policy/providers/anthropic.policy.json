@@ -1,0 +1,54 @@
+{
+  "provider": "anthropic",
+  "display_name": "Anthropic",
+  "base_url": "https://api.anthropic.com",
+  "credential_headers": ["x-api-key", "authorization"],
+  "credentials": [
+    {
+      "id": "anthropic.api_key",
+      "class": "A",
+      "poolable_across_people": true,
+      "resellable": false,
+      "may_store_credential": true,
+      "may_proxy_credential": true,
+      "notes": "Console API key. Designed for third-party application traffic."
+    },
+    {
+      "id": "anthropic.subscription_oauth",
+      "class": "C",
+      "poolable_across_people": false,
+      "resellable": false,
+      "may_store_credential": false,
+      "may_proxy_credential": false,
+      "execution": "official_cli_local_only",
+      "official_cli": { "binary": "claude", "noninteractive_flag": "-p" },
+      "notes": "Subscription OAuth is scoped to first-party clients. Never leaves the owner's device."
+    }
+  ],
+  "headroom_headers": {
+    "requests_limit": "anthropic-ratelimit-requests-limit",
+    "requests_remaining": "anthropic-ratelimit-requests-remaining",
+    "requests_reset": "anthropic-ratelimit-requests-reset",
+    "input_tokens_limit": "anthropic-ratelimit-input-tokens-limit",
+    "input_tokens_remaining": "anthropic-ratelimit-input-tokens-remaining",
+    "input_tokens_reset": "anthropic-ratelimit-input-tokens-reset",
+    "output_tokens_limit": "anthropic-ratelimit-output-tokens-limit",
+    "output_tokens_remaining": "anthropic-ratelimit-output-tokens-remaining",
+    "output_tokens_reset": "anthropic-ratelimit-output-tokens-reset",
+    "retry_after": "retry-after"
+  },
+  "reset_format": "rfc3339",
+  "replenishment": "token_bucket",
+  "tokens_remaining_rounding": 1000,
+  "cache_reads_count_toward_input_limit": false,
+  "spend_cap_429_has_retry_after": false,
+  "spend_cap_error_code": "enforced_spend_limit_reached",
+  "source_urls": ["https://platform.claude.com/docs/en/api/rate-limits"],
+  "verified_at": "2026-09-06",
+  "verified_by": "human",
+  "needs_verification": false,
+  "verification_notes": [
+    "Header names, RFC 3339 reset format, token-bucket replenishment, nearest-thousand rounding and the no-retry-after spend-cap 429 were all read from the source URL on the verified_at date.",
+    "The plan's §4.1 example listed anthropic-ratelimit-unified-5h-* headers. The current documentation does not describe them, so they are omitted here rather than carried forward unverified."
+  ]
+}

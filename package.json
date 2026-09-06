@@ -1,0 +1,31 @@
+{
+  "name": "tidepool",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
+    "test:policy": "vitest run test/policy",
+    "test:meter": "vitest run test/meter",
+    "test:preload": "vitest run test/preload"
+  },
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/react": "19.1.10",
+    "@types/react-dom": "19.1.7",
+    "playwright": "1.56.1",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  }
+}

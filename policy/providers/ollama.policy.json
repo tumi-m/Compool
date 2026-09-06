@@ -1,0 +1,29 @@
+{
+  "provider": "ollama",
+  "display_name": "Ollama (owned compute)",
+  "base_url": "http://127.0.0.1:11434",
+  "credential_headers": [],
+  "credentials": [
+    {
+      "id": "ollama.local_server",
+      "class": "B",
+      "poolable_across_people": true,
+      "resellable": true,
+      "may_store_credential": false,
+      "may_proxy_credential": false,
+      "execution": "node_local",
+      "notes": "Hardware the operator owns. No credential exists to handle; a paired node holds an outbound socket and reports signed usage."
+    }
+  ],
+  "headroom_headers": {},
+  "reset_format": "none",
+  "replenishment": "none",
+  "spend_cap_429_has_retry_after": null,
+  "source_urls": [],
+  "verified_at": "2026-09-06",
+  "verified_by": "human",
+  "needs_verification": false,
+  "verification_notes": [
+    "Class B raises no vendor-terms question: it is the operator's own hardware. Headroom is concurrency and VRAM, reported by the node, not by response headers."
+  ]
+}

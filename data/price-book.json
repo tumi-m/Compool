@@ -1,0 +1,16 @@
+{
+  "version": "unseeded-synthetic",
+  "sourceUrl": null,
+  "fetchedAt": null,
+  "synthetic": true,
+  "note": "These are STAND-IN numbers so the preview workspace has something to meter. They are not provider pricing and must never be presented as such. Run scripts/seed-prices.ts to fetch real pricing pages, review the diff, and publish a dated version.",
+  "prices": {
+    "anthropic:frontier": { "modelId": "anthropic:frontier", "inputUsd": 10, "outputUsd": 50, "cacheWriteUsd": 12.5, "cacheReadUsd": 1, "reasoningUsd": null },
+    "anthropic:workhorse": { "modelId": "anthropic:workhorse", "inputUsd": 3, "outputUsd": 15, "cacheWriteUsd": 3.75, "cacheReadUsd": 0.3, "reasoningUsd": null },
+    "anthropic:fast": { "modelId": "anthropic:fast", "inputUsd": 1, "outputUsd": 5, "cacheWriteUsd": 1.25, "cacheReadUsd": 0.1, "reasoningUsd": null },
+    "openai:frontier": { "modelId": "openai:frontier", "inputUsd": 10, "outputUsd": 40, "cacheWriteUsd": null, "cacheReadUsd": 2.5, "reasoningUsd": null },
+    "openai:workhorse": { "modelId": "openai:workhorse", "inputUsd": 2.5, "outputUsd": 10, "cacheWriteUsd": null, "cacheReadUsd": 0.625, "reasoningUsd": null },
+    "google:workhorse": { "modelId": "google:workhorse", "inputUsd": 1.25, "outputUsd": 5, "cacheWriteUsd": null, "cacheReadUsd": 0.3, "reasoningUsd": null },
+    "ollama:local": { "modelId": "ollama:local", "inputUsd": 0, "outputUsd": 0, "cacheWriteUsd": null, "cacheReadUsd": null, "reasoningUsd": null }
+  }
+}

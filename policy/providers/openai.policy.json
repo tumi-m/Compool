@@ -1,0 +1,41 @@
+{
+  "provider": "openai",
+  "display_name": "OpenAI",
+  "base_url": "https://api.openai.com/v1",
+  "credential_headers": ["authorization"],
+  "credentials": [
+    {
+      "id": "openai.api_key",
+      "class": "A",
+      "poolable_across_people": true,
+      "resellable": false,
+      "may_store_credential": true,
+      "may_proxy_credential": true,
+      "notes": "Platform API key. Designed for third-party application traffic."
+    },
+    {
+      "id": "openai.subscription_oauth",
+      "class": "C",
+      "poolable_across_people": false,
+      "resellable": false,
+      "may_store_credential": false,
+      "may_proxy_credential": false,
+      "execution": "official_cli_local_only",
+      "official_cli": { "binary": "codex", "noninteractive_flag": "exec" },
+      "notes": "Consumer plan entitlement. Executes only through the vendor's own signed-in CLI, on the owner's device."
+    }
+  ],
+  "headroom_headers": {},
+  "reset_format": "unknown",
+  "replenishment": "unknown",
+  "spend_cap_429_has_retry_after": null,
+  "source_urls": ["https://platform.openai.com/docs/guides/rate-limits"],
+  "verified_at": null,
+  "verified_by": "unverified",
+  "needs_verification": true,
+  "verification_notes": [
+    "Not populated. The source URL was unreachable from the build environment (egress blocked), and rule 1 forbids recalling header names, limits or pricing from memory.",
+    "Run scripts/verify-policy.ts from a network with access to the source URL, fill headroom_headers verbatim, then set verified_at and verified_by.",
+    "Until verified, the router treats headroom for this provider as unknown (§8.3 survival = 0.75) and the source is flagged in the UI."
+  ]
+}
