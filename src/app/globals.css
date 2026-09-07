@@ -295,7 +295,8 @@ fieldset { border: 0; margin: 0; padding: 0; }
 
 .basin { display: flex; flex-direction: column; gap: 8px; }
 .basinHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.basinName { font-weight: 600; font-size: 13px; }
+.basinName { font-weight: 600; font-size: 13px; flex: 1 1 auto; min-width: 0; }
+.basinHead .badge { flex: none; }
 .vessel {
   position: relative;
   height: 88px;
@@ -396,7 +397,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
 
 /* ---- progress / meter ---------------------------------------------------- */
 
-.meterBar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.meterBar { height: 6px; background: var(--stripe); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
 .meterBar > span { display: block; height: 100%; background: var(--water); transition: width 450ms var(--ease-settle); }
 .meterBar > span[data-over='true'] { background: var(--coral); }
 

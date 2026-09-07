@@ -246,6 +246,18 @@ export interface Run {
   finishedAt: string | null;
   /** Set when the run was dispatched by the preload scheduler rather than a human. */
   preloadItemId?: string;
+
+  // ---- always-on ----------------------------------------------------------
+  /** The rung it actually ran on. */
+  rungId?: string;
+  rungName?: string;
+  /** The tier the work asked for, and the tier it got. */
+  targetTier?: string;
+  ranTier?: string;
+  /** True when it ran below target and is waiting for the tide to rewrite it. */
+  needsRework?: boolean;
+  /** Set on the repair run, pointing at the run it is rewriting. */
+  reworkOfRunId?: string;
 }
 
 export interface NodeRecord {

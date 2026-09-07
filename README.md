@@ -88,13 +88,46 @@ cache warm of the files you will open first — and they run while the tide is i
 ## Always on
 
 Running out of frontier capacity is not a reason to stop. It is a reason to drop
-a rung: a lighter or open-weight model keeps the build moving, the output is
-flagged, and when the tide comes back in the capable model rewrites what the light
-rung left behind. A stall becomes a quality dip that repairs itself.
+a rung.
 
-Model names in the ladder are **supplied by you and unverified** — confirm the
-exact ids with your provider before it routes real traffic. The ladder mechanism
-does not depend on what they are called.
+- `pickRung` walks down from the tier the work asked for until it finds one a
+  connected provider can actually serve. It returns "stalled" only when even the
+  floor is gone.
+- **Owned compute is the floor.** An open-weight model on your own hardware never
+  runs out — it only gets slower. That is what makes always-on true rather than
+  aspirational, and it is why `/connect` pushes you toward registering a runtime.
+- Work that ran below its target is **flagged for rework**, not silently accepted.
+  When a capable rung replenishes, the flagged runs surface on the pool page and
+  in the 3am window, where the rewrite is cheapest: the capable rung is full and
+  nobody is waiting.
+
+So a stall becomes a quality dip that repairs itself.
+
+`/models` is the whole ladder on one screen — tier, serving provider, live
+availability, latency, next tide — which is also the screen that explains why any
+given request landed where it did.
+
+Model names in the ladder are **supplied by you and unverified**. Confirm the exact
+ids with each provider before this routes real traffic; a wrong id fails at
+dispatch and a silently retired one is a production incident. The ladder mechanism
+does not depend on what the rungs are called.
+
+## Orchestrate
+
+Ideas arrive thirty at once, usually while you are busy with the twenty-ninth. What
+kills the burst is not capacity — it is that ordering them is itself work, and
+doing it by hand costs exactly the attention the ideas needed.
+
+`/orchestrate` takes the dump one idea per line and returns an order: priority as
+impact × urgency ÷ effort, dependencies resolved topologically, a tier per task,
+and a slot — runnable now, waiting for the tide, or blocked.
+
+- Scoping runs on the **cheapest rung that can plan**, never the expensive one.
+- A circular dependency is reported, never guessed at. An agent that quietly drops
+  a dependency produces work in the wrong order and nobody notices until it has
+  been done twice.
+- The plan is a function of the tide, not a fixed list: the same task is a frontier
+  job at 9am and a light-rung job at 4pm with a rewrite queued for 3am.
 
 ## Open source
 

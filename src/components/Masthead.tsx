@@ -8,6 +8,8 @@ import { Mark } from './Mark';
 const NAV = [
   { href: '/', label: 'Pool' },
   { href: '/connect', label: 'Connect' },
+  { href: '/models', label: 'Models' },
+  { href: '/orchestrate', label: 'Orchestrate' },
   { href: '/preload', label: 'Preload' },
   { href: '/open-source', label: 'Open source' },
   { href: '/ledger', label: 'Ledger' },

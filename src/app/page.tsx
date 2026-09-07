@@ -6,6 +6,7 @@ import { Basin } from '@/components/Basin';
 import { Stack } from '@/components/Stack';
 import { Tide } from '@/components/Tide';
 import { ME, useWorkspace } from '@/components/WorkspaceProvider';
+import { TIER_COPY, pickRung, type Tier } from '@/lib/ladder/rungs';
 import { positions } from '@/lib/meter/ledger';
 import { PRESETS, type PresetName } from '@/lib/router/select';
 import { fillFraction } from '@/lib/router/headroom';
@@ -14,7 +15,10 @@ import { localParts } from '@/lib/preload/schedule';
 import { duration, relative, usd } from '@/lib/format';
 
 export default function PoolPage() {
-  const { ws, now, spentTodayUsd, budgetRemainingUsd, streamingSourceIds, startRun, revokeSource, setPreset, reseed } = useWorkspace();
+  const {
+    ws, now, candidates, spentTodayUsd, budgetRemainingUsd, streamingSourceIds,
+    startRun, revokeSource, setPreset, reseed, reworkQueue, runRework,
+  } = useWorkspace();
   const [busy, setBusy] = useState(false);
 
   const live = ws.sources.filter((s) => s.status !== 'revoked');
@@ -29,6 +33,11 @@ export default function PoolPage() {
   const nowHour = localParts(now, Intl.DateTimeFormat().resolvedOptions().timeZone).hour;
 
   const running = ws.runs.filter((r) => r.state === 'streaming');
+
+  // Always-on: what the next frontier-targeted request would actually land on.
+  const nextPick = pickRung('frontier' as Tier, ws.rungs, {
+    now, candidates, minFill: 0.03, estimatedTokens: 24_000,
+  });
   const lastFail = ws.runs.find((r) => r.state === 'failed');
 
   const fire = (kind: 'interactive' | 'bulk') => {
@@ -73,6 +82,26 @@ export default function PoolPage() {
             Run a batch
           </button>
         </div>
+      </div>
+
+      <div className={`notice ${nextPick.kind === 'stalled' ? 'stop' : nextPick.degraded ? 'warn' : ''}`}>
+        {nextPick.kind === 'stalled' ? (
+          <>
+            <strong>Every rung is out.</strong> {nextPick.reason}
+          </>
+        ) : nextPick.degraded ? (
+          <>
+            <strong>Always on — running one rung down.</strong> {TIER_COPY.frontier.label} capacity is spent, so
+            work is landing on <strong>{nextPick.rung.name}</strong> and being flagged. It gets rewritten when the
+            tide comes back in, so the build keeps moving and the quality dip repairs itself.
+          </>
+        ) : (
+          <>
+            <strong>Always on — top of the ladder.</strong> Work is landing on{' '}
+            <strong>{nextPick.rung.name}</strong>. When it runs dry the next request drops a rung rather than
+            stopping. <Link href="/models">See the whole ladder →</Link>
+          </>
+        )}
       </div>
 
       <Tide
@@ -146,7 +175,8 @@ export default function PoolPage() {
                         {r.preloadItemId ? <span className="badge" style={{ marginLeft: 6 }}>preloaded</span> : null}
                       </div>
                       <div className="runMeta">
-                        {r.state} · {src?.label ?? 'unrouted'} · {relative(r.createdAt, now)}
+                        {r.state} · {r.rungName ?? src?.label ?? 'unrouted'} · {relative(r.createdAt, now)}
+                        {r.needsRework ? ' · flagged for rework' : ''}
                       </div>
                     </div>
                     <div className="num" style={{ textAlign: 'right' }}>
@@ -160,6 +190,28 @@ export default function PoolPage() {
           </div>
         </section>
       </div>
+
+      {reworkQueue.length > 0 ? (
+        <section className="panel">
+          <div className="spread">
+            <h2>Waiting to be rewritten</h2>
+            <span className="badge water">{reworkQueue.length} ready</span>
+          </div>
+          <p className="hint" style={{ marginTop: 6 }}>
+            These ran on a lower rung while the tide was out, and a capable rung is available again. They go into
+            the 3am window by default; rewrite one now if you would rather not wait.
+          </p>
+          {reworkQueue.slice(0, 5).map((r) => (
+            <div className="runRow" key={r.id}>
+              <div>
+                <div className="runTitle">{r.title}</div>
+                <div className="runMeta">ran on {r.rungName} · wanted {r.targetTier}</div>
+              </div>
+              <button type="button" className="tiny primary" onClick={() => runRework(r)}>Rewrite now</button>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       <section className="panel">
         <div className="spread">

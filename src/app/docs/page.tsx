@@ -82,6 +82,19 @@ export default function DocsPage() {
 # items whose own local window is open, so 3am means 3am per person.
 vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * * *" }] }`}</pre>
 
+      <h2>Always on, and the rework loop</h2>
+      <p>
+        Running out of frontier capacity is not a reason to stop; it is a reason to drop a rung. The ladder walks
+        down from the tier the work asked for until it finds one a connected provider can serve, and returns
+        “stalled” only when even the floor is gone.
+      </p>
+      <ul>
+        <li><strong>Owned compute is the floor.</strong> An open-weight model on your own hardware never runs out — it only gets slower. That is what makes always-on true rather than aspirational.</li>
+        <li>Work that ran below its target is <strong>flagged for rework</strong>, not silently accepted. When a capable rung replenishes, flagged runs surface on the pool page and in the 3am window — the cheapest moment to rewrite them, because the capable rung is full and nobody is waiting.</li>
+        <li>Scoping runs on the cheapest rung that can plan. Planning is small work and should never spend the expensive rung.</li>
+        <li>Model names in the ladder are supplied by the operator and unverified. Confirm them against each provider’s own catalogue before routing real traffic; the mechanism does not depend on the names.</li>
+      </ul>
+
       <h2>What this deployment is</h2>
       <p>
         The app in §6.1 — the UI, the pure router, the pure meter, the ledger and the preload scheduler — running

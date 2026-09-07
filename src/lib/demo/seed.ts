@@ -11,6 +11,8 @@ import type {
 } from '../types';
 import type { PreloadItem } from '../preload/schedule';
 import { PRELOAD_DEFAULTS } from '../preload/schedule';
+import type { Rung } from '../ladder/rungs';
+import type { Idea } from '../orchestrate/triage';
 
 export const ME = 'user_me';
 
@@ -25,6 +27,8 @@ export interface Workspace {
   usage: UsageEvent[];
   ledger: LedgerEntry[];
   preload: PreloadItem[];
+  rungs: Rung[];
+  ideas: Idea[];
   /** 24 hourly buckets of tokens spent, local time. Feeds the trough finder. */
   hourlyLoad: number[];
   preset: string;
@@ -32,6 +36,36 @@ export interface Workspace {
 }
 
 const iso = (ms: number) => new Date(ms).toISOString();
+
+/**
+ * The ladder, as supplied by the operator.
+ *
+ * Every name here came from the person configuring the deployment, not from a
+ * provider catalogue — so every rung is `verified: false` and the catalogue says
+ * so. Rule 1 forbids inventing model ids, and the ladder mechanism does not care
+ * what the rungs are called; it only cares which provider serves each one and
+ * how much of that provider's window is left.
+ */
+export const LADDER: Rung[] = [
+  { id: 'rung_astra_opus', name: 'Astra Opus', tier: 'frontier', provider: 'anthropic', openWeight: false, canPlan: false, verified: false },
+  { id: 'rung_kimi_k3', name: 'Kimi K3', tier: 'frontier', provider: 'openai', openWeight: true, canPlan: false, verified: false, note: 'Open weights, hosted.' },
+  { id: 'rung_deepseek_v4_pro', name: 'DeepSeek V4 Pro', tier: 'frontier', provider: 'google', openWeight: true, canPlan: false, verified: false, note: 'Open weights, hosted.' },
+  { id: 'rung_glm_53', name: 'GLM 5.3', tier: 'strong', provider: 'anthropic', openWeight: true, canPlan: true, verified: false, note: 'Open weights, hosted.' },
+  { id: 'rung_gpt_terra', name: 'GPT Terra', tier: 'light', provider: 'openai', openWeight: false, canPlan: true, verified: false },
+  { id: 'rung_glm_53_flash', name: 'GLM 5.3 Flash', tier: 'light', provider: 'anthropic', openWeight: true, canPlan: true, verified: false, note: 'Open weights, hosted.' },
+  { id: 'rung_deepseek_muse', name: 'DeepSeek V4 Muse', tier: 'light', provider: 'google', openWeight: true, canPlan: true, verified: false, note: 'Open weights, hosted.' },
+  { id: 'rung_spark_contrib', name: 'Spark 1.3 Contributor', tier: 'free', provider: 'openai', openWeight: true, canPlan: true, verified: false, note: 'Free tier.' },
+  { id: 'rung_local_70b', name: 'Local 70B (open weight)', tier: 'free', provider: 'ollama', openWeight: true, canPlan: true, verified: true, note: 'Your own hardware. Never runs out; only gets slower. This rung is the floor that makes always-on true.' },
+];
+
+const SEED_IDEAS = (now: number): Idea[] => [
+  { id: 'idea_1', text: 'Replace the hand-rolled SSE parser with the adapter interface', impact: 5, effort: 4, urgency: 4, blockedBy: [], status: 'inbox', createdAt: iso(now - 7_200_000) },
+  { id: 'idea_2', text: 'Record the abort-midstream fixture for every provider', impact: 4, effort: 2, urgency: 5, blockedBy: [], status: 'inbox', createdAt: iso(now - 6_600_000) },
+  { id: 'idea_3', text: 'Ledger reconciliation job against the provider usage endpoint', impact: 5, effort: 5, urgency: 3, blockedBy: ['idea_2'], status: 'inbox', createdAt: iso(now - 6_000_000) },
+  { id: 'idea_4', text: 'Rename coolingUntil to something a human would say out loud', impact: 1, effort: 1, urgency: 1, blockedBy: [], status: 'inbox', createdAt: iso(now - 5_400_000) },
+  { id: 'idea_5', text: 'Virtualise the runs list past fifty rows', impact: 3, effort: 2, urgency: 2, blockedBy: [], status: 'inbox', createdAt: iso(now - 4_800_000) },
+  { id: 'idea_6', text: 'Node pairing flow end to end on a fresh machine', impact: 5, effort: 4, urgency: 2, blockedBy: [], status: 'inbox', createdAt: iso(now - 4_200_000) },
+];
 
 function headroom(now: number, limit: number, fraction: number, resetInMin: number): Headroom {
   return {
@@ -132,6 +166,8 @@ export function seedWorkspace(now = Date.now()): Workspace {
 
   return {
     users,
+    rungs: LADDER,
+    ideas: SEED_IDEAS(now),
     pool: {
       id: 'pool_demo', slug: 'tidepool-demo', name: 'Harbour build', kind: 'hackathon',
       ownerUserId: ME, budgetCapUsd: 40, budgetPeriod: 'day', settlePolicy: 'none',

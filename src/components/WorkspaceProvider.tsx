@@ -17,6 +17,8 @@ import { costUsd } from '@/lib/meter/price-book';
 import { entriesFor, positions } from '@/lib/meter/ledger';
 import type { Candidate, CapacitySource, Run, Usage, UsageEvent, WorkKind } from '@/lib/types';
 import type { PreloadItem } from '@/lib/preload/schedule';
+import { pickRung, promotionAvailable, tierRank, type LadderContext, type Tier } from '@/lib/ladder/rungs';
+import type { Idea } from '@/lib/orchestrate/triage';
 
 const KEY = 'tidepool.workspace.v1';
 
@@ -28,7 +30,20 @@ interface Ctx {
   spentTodayUsd: number;
   budgetRemainingUsd: number | null;
   update: (fn: (w: Workspace) => Workspace) => void;
-  startRun: (opts: { title: string; kind: WorkKind; estimatedTokens: number; model?: string; preloadItemId?: string }) => string | null;
+  startRun: (opts: {
+    title: string;
+    kind: WorkKind;
+    estimatedTokens: number;
+    model?: string;
+    preloadItemId?: string;
+    targetTier?: Tier;
+    reworkOfRunId?: string;
+  }) => string | null;
+  ladderCtx: LadderContext;
+  reworkQueue: Run[];
+  runRework: (run: Run) => void;
+  upsertIdea: (i: Idea) => void;
+  removeIdea: (id: string) => void;
   reseed: () => void;
   addSource: (s: CapacitySource) => void;
   revokeSource: (id: string) => void;
@@ -108,6 +123,25 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [ws.runs],
   );
 
+  const ladderCtx = useMemo<LadderContext>(
+    () => ({ now, candidates, minFill: 0.05, estimatedTokens: 20_000 }),
+    [now, candidates],
+  );
+
+  // Work that ran below its target tier and is waiting for the tide to come back
+  // in. A stall becomes a quality dip that repairs itself.
+  const reworkQueue = useMemo(
+    () =>
+      ws.runs.filter(
+        (r) =>
+          r.needsRework &&
+          r.state === 'done' &&
+          !ws.runs.some((x) => x.reworkOfRunId === r.id) &&
+          promotionAvailable((r.targetTier ?? 'frontier') as Tier, ws.rungs, ladderCtx) !== null,
+      ),
+    [ws.runs, ws.rungs, ladderCtx],
+  );
+
   // ---- the run engine ------------------------------------------------------
   // Stands in for the gateway: it walks the same state machine, drains the same
   // headroom and writes the same usage + double-entry pair, so every number on
@@ -122,6 +156,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const contribution = new Map(pos.map((p) => [p.userId, p.contributedUsd]));
       const consumption = new Map(pos.map((p) => [p.userId, p.consumedUsd]));
       const spread = Math.max(1, Math.max(...pos.map((p) => Math.abs(p.netUsd)), 1) * 2);
+
+      const target: Tier = opts.targetTier ?? 'strong';
+      const rung = pickRung(target, ws.rungs, {
+        now: at,
+        candidates,
+        minFill: 0.03,
+        estimatedTokens: opts.estimatedTokens,
+      });
 
       const sel = select(
         {
@@ -140,7 +182,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           excludedSourceIds: new Set(),
           headroomMarginTokens: HEADROOM_MARGIN_TOKENS,
           costSensitivity: 40,
-          stickySourceId: ws.runs.find((r) => r.state === 'done')?.sourceId ?? null,
           contributionUsd: contribution,
           consumptionUsd: consumption,
           poolNetSpreadUsd: spread,
@@ -148,6 +189,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           policies: register,
           budgetRemainingUsd,
           memberCapRemainingUsd: null,
+          // Prefer the source the ladder landed on, so the rung and the basin
+          // agree about where the work actually went.
+          stickySourceId: rung.kind === 'picked' ? rung.sourceId : null,
         },
       );
 
@@ -159,7 +203,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             {
               id: runId, poolId: w.pool.id, title: opts.title, requestedBy: ME, attributedTo: ME,
               state: 'failed' as const, sourceId: null, kind: opts.kind, attempt: 1, maxAttempts: 3,
-              errorCode: sel.reason, costUsd: 0, outputTokens: 0, estimatedTokens: opts.estimatedTokens,
+              errorCode: rung.kind === 'stalled' ? rung.reason : sel.reason,
+              costUsd: 0, outputTokens: 0, estimatedTokens: opts.estimatedTokens,
               createdAt: new Date(at).toISOString(), finishedAt: new Date(at).toISOString(),
               preloadItemId: opts.preloadItemId,
             },
@@ -175,6 +220,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         state: 'streaming', sourceId: source.id, kind: opts.kind, attempt: 1, maxAttempts: 3,
         errorCode: null, costUsd: 0, outputTokens: 0, estimatedTokens: opts.estimatedTokens,
         createdAt: new Date(at).toISOString(), finishedAt: null, preloadItemId: opts.preloadItemId,
+        rungId: rung.kind === 'picked' ? rung.rung.id : undefined,
+        rungName: rung.kind === 'picked' ? rung.rung.name : undefined,
+        targetTier: target,
+        ranTier: rung.kind === 'picked' ? rung.rung.tier : undefined,
+        needsRework: rung.kind === 'picked' ? rung.degraded : false,
+        reworkOfRunId: opts.reworkOfRunId,
       };
       update((w) => ({ ...w, runs: [run, ...w.runs].slice(0, 60) }));
 
@@ -237,6 +288,23 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const value: Ctx = {
     ws, now, candidates, streamingSourceIds: streaming, spentTodayUsd, budgetRemainingUsd, update, startRun,
+    ladderCtx,
+    reworkQueue,
+    runRework: (run) => {
+      startRun({
+        title: `Rework: ${run.title.replace(/^Rework: /, '')}`,
+        kind: 'bulk',
+        estimatedTokens: Math.round(run.estimatedTokens * 0.7),
+        targetTier: (run.targetTier ?? 'frontier') as Tier,
+        reworkOfRunId: run.id,
+      });
+    },
+    upsertIdea: (i) =>
+      update((w) => ({
+        ...w,
+        ideas: w.ideas.some((x) => x.id === i.id) ? w.ideas.map((x) => (x.id === i.id ? i : x)) : [...w.ideas, i],
+      })),
+    removeIdea: (id) => update((w) => ({ ...w, ideas: w.ideas.filter((i) => i.id !== id) })),
     reseed: () => setWs(seedWorkspace(Date.now())),
     addSource: (s) =>
       update((w) => ({

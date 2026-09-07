@@ -26,7 +26,7 @@ const KIND_COPY: Record<PreloadKind, string> = {
 const TZ = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
 
 export default function PreloadPage() {
-  const { ws, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update } = useWorkspace();
+  const { ws, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update, reworkQueue, runRework } = useWorkspace();
   const [open, setOpen] = useState(false);
 
   const ctx = useMemo(
@@ -148,6 +148,28 @@ export default function PreloadPage() {
           </div>
         </div>
       </div>
+
+      {reworkQueue.length > 0 ? (
+        <section className="panel">
+          <div className="spread">
+            <h2>Rework rides the same tide</h2>
+            <span className="badge water">{reworkQueue.length} queued</span>
+          </div>
+          <p className="hint" style={{ marginTop: 6 }}>
+            Work that ran a rung down while the tide was out goes into this window automatically. It is the
+            cheapest possible moment to rewrite it: the capable rung has replenished, and nobody is waiting.
+          </p>
+          {reworkQueue.slice(0, 6).map((r) => (
+            <div className="runRow" key={r.id}>
+              <div>
+                <div className="runTitle">{r.title}</div>
+                <div className="runMeta">ran on {r.rungName} · wanted {r.targetTier}</div>
+              </div>
+              <button type="button" className="tiny" onClick={() => runRework(r)}>Rewrite now</button>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       {open ? <NewItem onAdd={(i) => { upsertPreload(i); setOpen(false); }} /> : null}
 
