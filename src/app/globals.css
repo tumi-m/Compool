@@ -18,6 +18,9 @@
 
   --on-deep: #eef7f6;
   --stripe: rgba(18, 34, 42, 0.03);
+  /* "already happened": deep water on paper, but deep water is invisible on
+     deep water, so the dark theme resolves it to something that reads. */
+  --done: #0a5a66;
 
   --display: Archivo, "Arial Narrow", Impact, sans-serif;
   --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -45,6 +48,7 @@
 
   --on-deep: #e9f3f2;
   --stripe: rgba(233, 243, 242, 0.04);
+  --done: #6fd9cf;
 }
 
 *,
@@ -765,3 +769,60 @@ fieldset { border: 0; margin: 0; padding: 0; }
   from { background: var(--foam); }
   to { background: transparent; }
 }
+
+/* ---- loading: shapes, never spinners ------------------------------------- */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--line) 0%, var(--stripe) 50%, var(--line) 100%);
+  background-size: 220% 100%;
+  opacity: 0.55;
+  /* The shimmer is bounded: it runs while data is genuinely outstanding and
+     stops the moment the real element replaces it. It never outlasts the data. */
+  animation: shimmer 1.25s linear infinite;
+}
+@keyframes shimmer {
+  to { background-position: -220% 0; }
+}
+
+/* ---- saturated: forty sources and three hundred runs --------------------- */
+
+.groupBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--panel);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  min-height: 0;
+}
+.groupBar[aria-expanded='true'] { border-color: var(--water); }
+.groupCaret { transition: transform 200ms var(--ease-out); display: inline-block; }
+.groupBar[aria-expanded='true'] .groupCaret { transform: rotate(90deg); }
+
+.scroller { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---- the tide clock: a countdown you can read at a glance ---------------- */
+
+.tideClock { display: block; }
+.tideClockTrack { stroke: var(--line); fill: none; }
+.tideClockArc {
+  fill: none;
+  stroke: var(--water);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 900ms var(--ease-out), stroke 300ms var(--ease-out);
+}
+.tideClockArc[data-open='true'] { stroke: var(--chip); }
+.tideClockHand {
+  stroke: var(--ink-1);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform-box: fill-box;
+  transition: transform 900ms var(--ease-out);
+}
+.tideClockPip { fill: var(--ink-2); }
+.tideClockPip[data-in='true'] { fill: var(--chip); }

@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Basin } from '@/components/Basin';
+import { BasinGrid } from '@/components/BasinGrid';
+import { Skeleton } from '@/components/Skeleton';
+import { VirtualList } from '@/components/VirtualList';
+import { BasinSkeleton, PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
 import { Stack } from '@/components/Stack';
 import { Tide } from '@/components/Tide';
 import { ME, useWorkspace } from '@/components/WorkspaceProvider';
@@ -18,8 +21,8 @@ import { duration, relative, usd } from '@/lib/format';
 
 export default function PoolPage() {
   const {
-    ws, now, candidates, spentTodayUsd, budgetRemainingUsd, streamingSourceIds,
-    startRun, revokeSource, setPreset, reseed, reworkQueue, runRework,
+    ws, hydrated, now, candidates, spentTodayUsd, budgetRemainingUsd, streamingSourceIds,
+    startRun, revokeSource, setPreset, reseed, saturate, reworkQueue, runRework,
   } = useWorkspace();
   const [busy, setBusy] = useState(false);
 
@@ -55,7 +58,9 @@ export default function PoolPage() {
   const nextPick = pickRung('frontier' as Tier, ws.rungs, {
     now, candidates, minFill: 0.03, estimatedTokens: 24_000,
   });
-  const lastFail = ws.runs.find((r) => r.state === 'failed');
+  // Only the newest run can be "the last run": a failure buried under fifty
+  // successes is history, and a banner about it contradicts the ladder above it.
+  const lastFail = ws.runs[0]?.state === 'failed' ? ws.runs[0] : null;
 
   const fire = (kind: 'interactive' | 'bulk') => {
     setBusy(true);
@@ -66,6 +71,19 @@ export default function PoolPage() {
     });
     window.setTimeout(() => setBusy(false), 2200);
   };
+
+  if (!hydrated) {
+    return (
+      <div className="stackv" style={{ gap: 20 }}>
+        <LoadingRegion label="Loading your pool" />
+        <div className="pageHead"><Skeleton h={31} w={260} /></div>
+        <PanelSkeleton rows={2} />
+        <div className="grid cols3">
+          {[0, 1, 2].map((i) => <BasinSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   if (live.length === 0) {
     return <EmptyState />;
@@ -168,17 +186,14 @@ export default function PoolPage() {
           <h2>Basins</h2>
           <span className="hint">A personal seat never joins the pool. It still breaks your own stall.</span>
         </div>
-        <div className="grid cols3 riseIn" style={{ marginTop: 10 }}>
-          {live.map((s) => (
-            <Basin
-              key={s.id}
-              source={s}
-              headroom={ws.headroom[s.id] ?? null}
-              now={now}
-              live={streamingSourceIds.has(s.id)}
-              onRevoke={revokeSource}
-            />
-          ))}
+        <div style={{ marginTop: 10 }}>
+          <BasinGrid
+            sources={live}
+            headroom={ws.headroom}
+            now={now}
+            streaming={streamingSourceIds}
+            onRevoke={revokeSource}
+          />
         </div>
       </section>
 
@@ -203,10 +218,12 @@ export default function PoolPage() {
             <span className="hint">{running.length ? `${running.length} streaming` : 'idle'}</span>
           </div>
           <div style={{ marginTop: 6 }}>
-            {ws.runs.length === 0 ? (
-              <p className="hint">Nothing has run in this session yet.</p>
-            ) : (
-              ws.runs.slice(0, 8).map((r) => {
+            <VirtualList
+              items={ws.runs}
+              rowHeight={54}
+              height={ws.runs.length > 6 ? 324 : Math.max(54, ws.runs.length * 54)}
+              emptyLabel="Nothing has run in this session yet."
+              renderRow={(r) => {
                 const src = ws.sources.find((s) => s.id === r.sourceId);
                 return (
                   <div className="runRow" key={r.id}>
@@ -226,8 +243,8 @@ export default function PoolPage() {
                     </div>
                   </div>
                 );
-              })
-            )}
+              }}
+            />
           </div>
         </section>
       </div>
@@ -269,9 +286,14 @@ export default function PoolPage() {
           <span>
             budget left {budgetRemainingUsd === null ? 'uncapped' : usd(budgetRemainingUsd)} · empties in {duration(emptyIn)}
           </span>
-          <button type="button" className="tiny ghost" onClick={reseed} style={{ marginLeft: 'auto' }}>
-            Reset preview workspace
-          </button>
+          <span style={{ marginLeft: 'auto' }} className="row">
+            <button type="button" className="tiny ghost" onClick={saturate}>
+              Simulate a full hackathon
+            </button>
+            <button type="button" className="tiny ghost" onClick={reseed}>
+              Reset preview workspace
+            </button>
+          </span>
         </div>
       </section>
     </div>

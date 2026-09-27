@@ -191,6 +191,24 @@ Motion shows a value changing; that is its whole job.
 None of it is SMIL or a JS timer, so the single `prefers-reduced-motion` rule in
 the stylesheet stops all of it at once. Nothing animates while the system is idle.
 
+## The five states
+
+Every data surface ships all five, and the interface has a way to reach each one
+rather than leaving them as untested code paths.
+
+- **Empty** — nothing connected. The screen that decides whether anyone finishes
+  onboarding, so it teaches the three capacity classes in one pass.
+- **Loading** — skeletons matching the final dimensions exactly, so nothing shifts.
+  Never a spinner where a shape is known. The shimmer is bounded: it stops the
+  moment the real element replaces it.
+- **Partial** — a half-arrived stream renders correctly; the room is built from it.
+- **Error** — what failed, which source, what happens next, one action. Never a raw
+  provider error string.
+- **Saturated** — *Simulate a full hackathon* on the pool page seeds forty sources,
+  twelve members and three hundred runs. Basins group by provider past a dozen and
+  the run list windows. Designed before the data existed, because a real hackathon
+  produces it in hour one.
+
 ## What this deployment is not, yet
 
 - **No vault.** With no KMS configured the connect flow refuses to accept a key

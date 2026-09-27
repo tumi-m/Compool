@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
+import { seedSaturated, seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
 import { register } from '@/lib/policy/register';
 import { PRESETS, select, type PresetName } from '@/lib/router/select';
 import { HEADROOM_MARGIN_TOKENS, fillFraction } from '@/lib/router/headroom';
@@ -24,6 +24,9 @@ const KEY = 'tidepool.workspace.v1';
 
 interface Ctx {
   ws: Workspace;
+  /** False until localStorage has been read. Pages show skeletons until then,
+   *  which is also what stops a flash of seeded content on first paint. */
+  hydrated: boolean;
   now: number;
   candidates: Candidate[];
   streamingSourceIds: Set<string>;
@@ -45,6 +48,8 @@ interface Ctx {
   upsertIdea: (i: Idea) => void;
   removeIdea: (id: string) => void;
   reseed: () => void;
+  /** §14.8 state 5, on demand: forty sources, twelve members, three hundred runs. */
+  saturate: () => void;
   addSource: (s: CapacitySource) => void;
   revokeSource: (id: string) => void;
   setPreset: (p: PresetName) => void;
@@ -287,7 +292,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: Ctx = {
-    ws, now, candidates, streamingSourceIds: streaming, spentTodayUsd, budgetRemainingUsd, update, startRun,
+    ws, hydrated, now, candidates, streamingSourceIds: streaming, spentTodayUsd, budgetRemainingUsd, update, startRun,
     ladderCtx,
     reworkQueue,
     runRework: (run) => {
@@ -306,6 +311,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       })),
     removeIdea: (id) => update((w) => ({ ...w, ideas: w.ideas.filter((i) => i.id !== id) })),
     reseed: () => setWs(seedWorkspace(Date.now())),
+    saturate: () => setWs(seedSaturated(Date.now())),
     addSource: (s) =>
       update((w) => ({
         ...w,

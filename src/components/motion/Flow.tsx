@@ -94,7 +94,7 @@ export function Flow({
           const isNow = i === idx;
           const done = idx > i;
           const failed = i === failIdx;
-          const colour = failed ? 'var(--coral)' : isNow ? 'var(--water)' : done ? 'var(--water-deep)' : 'var(--ink-2)';
+          const colour = failed ? 'var(--coral)' : isNow ? 'var(--water)' : done ? 'var(--done)' : 'var(--ink-2)';
           return (
             <g key={s.id}>
               {s.effect ? (

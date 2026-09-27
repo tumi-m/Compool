@@ -16,6 +16,8 @@ import {
   type PreloadKind,
 } from '@/lib/preload/schedule';
 import { clockAt, duration, pct, tokens, usd } from '@/lib/format';
+import { TideClock } from '@/components/motion/TideClock';
+import { PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
 
 const KIND_COPY: Record<PreloadKind, string> = {
   warm_cache: 'Warm cache — loads context and holds it, so the morning session reads from cache instead of paying full input.',
@@ -26,7 +28,7 @@ const KIND_COPY: Record<PreloadKind, string> = {
 const TZ = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
 
 export default function PreloadPage() {
-  const { ws, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update, reworkQueue, runRework } = useWorkspace();
+  const { ws, hydrated, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update, reworkQueue, runRework } = useWorkspace();
   const [open, setOpen] = useState(false);
 
   const ctx = useMemo(
@@ -86,27 +88,47 @@ export default function PreloadPage() {
         </button>
       </div>
 
-      <div className="grid cols2">
+      {!hydrated ? (
+        <>
+          <LoadingRegion label="Loading the preload queue" />
+          <div className="grid cols2">
+            <PanelSkeleton rows={4} />
+            <PanelSkeleton rows={4} />
+          </div>
+        </>
+      ) : null}
+
+      <div className="grid cols2" hidden={!hydrated}>
         <div className="panel stackv">
-          <div className="spread">
-            <div>
-              <div className="sectionLabel">Next window opens</div>
-              <div className="bigNum">
-                {p.nextWindowMs === null && p.dispatchCount === 0
-                  ? '—'
-                  : p.nextWindowMs === null
-                    ? 'open now'
-                    : clockAt(now + p.nextWindowMs)}
-                <span className="unit">{p.nextWindowMs ? `in ${duration(p.nextWindowMs)}` : 'local'}</span>
-              </div>
-            </div>
+          <TideClock
+            anchorHour={anchor}
+            windowHours={PRELOAD_DEFAULTS.windowHours}
+            localHour={localHour}
+            localMinute={new Date(now).getMinutes()}
+            msUntil={p.nextWindowMs}
+            open={p.nextWindowMs === null || p.nextWindowMs === 0}
+          />
+          <div className="spread" style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
             <div>
               <div className="sectionLabel">Queued for it</div>
               <div className="num" style={{ fontSize: 25 }}>{p.dispatchCount}<span className="muted small"> / {ws.preload.length}</span></div>
             </div>
             <div>
-              <div className="sectionLabel">Estimated</div>
-              <div className="num" style={{ fontSize: 25 }}>{usd(p.estTotalUsd)}</div>
+              <div className="sectionLabel">Estimated for the run</div>
+              <div className="num" style={{ fontSize: 25 }}>
+                {usd(
+                  // What the window will cost when it opens, not what it would
+                  // cost this second — otherwise it reads zero all day and the
+                  // number is useless exactly when you want to check it.
+                  ws.preload
+                    .filter((i) => i.enabled)
+                    .reduce((a, i) => a + estimatedCostUsd(i, i.model === '*' ? 'anthropic:workhorse' : i.model), 0),
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="sectionLabel">Rework riding along</div>
+              <div className="num" style={{ fontSize: 25 }}>{reworkQueue.length}</div>
             </div>
           </div>
           <div className="hint">

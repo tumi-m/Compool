@@ -22,7 +22,7 @@ const STATE_COLOUR: Record<Task['state'], string> = {
   ready: 'var(--water)',
   claimed: 'var(--chip)',
   running: 'var(--water)',
-  done: 'var(--water-deep)',
+  done: 'var(--done)',
   failed: 'var(--coral)',
 };
 
