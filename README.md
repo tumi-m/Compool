@@ -35,6 +35,8 @@ the preview deliberately refuses to fake.
 | `src/lib/ladder` | The always-on ladder: drop a rung rather than stall, and rework it when the tide returns. |
 | `src/lib/orchestrate` | Idea intake, triage and ordering. Thirty ideas in, one execution plan out. |
 | `src/lib/preload` | The 3am scheduler. Pure. |
+| `src/lib/room` | Room events, the SSE contract and the task graph DAG. Pure. |
+| `src/components/motion` | Odometer, sparkline and the animated request pipeline. |
 | `src/app` | The interface. |
 | `policy/providers/*.json` | Vendor terms as data, so a terms change is a data change rather than a code change. |
 
@@ -139,6 +141,55 @@ is how you end up with a connect screen nobody understands:
 - **Clients** *spend* it — Cline, OpenCode, Continue, Aider, Goose. Point them at
   TIDEPOOL's OpenAI-compatible endpoint and every request they make is routed,
   metered and attributed like any other run.
+
+## Rooms
+
+A run is a first-class shared object: anyone in the room watches it live, sees what
+it costs as it costs it, or picks it up when the person who started it goes to bed.
+
+- **SSE, not WebSockets.** One-directional, survives proxies, reconnects natively.
+  Every client action is an ordinary POST, so a second protocol would buy nothing.
+- **Exact replay.** Every event carries a sequence number; a reconnecting client
+  sends the last one it actually saw and gets back precisely the gap. The room has
+  a *Drop the connection* button so you can watch it work.
+- **A heartbeat every 15 seconds**, regardless of model output — intermediaries
+  close long-lived connections when they go quiet.
+- **Backpressure.** Cost and headroom ticks capped at 2/s, text deltas coalesced
+  to 30/s. A room with six agents must not push 400 events/sec at a phone.
+- **A real DAG, not a transcript.** Cycles are rejected at insert with the
+  offending path. Claiming is first-write-wins, which is what stops two people
+  doing the same thing at 2am.
+
+## Nodes
+
+The local daemon is what makes owned compute and personal seats possible at all.
+It is outbound-only — no inbound ports, no tunnel to configure — generates a
+keypair whose private half never leaves the device, and signs every report.
+
+It may not read, copy, export or transmit a vendor CLI's credential store, run
+work attributed to anyone else, or accept a dispatch for a source it does not own,
+and there is no configuration flag that enables any of those. The environment it
+spawns a vendor client into is stripped of every credential-bearing variable named
+in any policy file first, so one vendor's key can never reach another's client.
+
+Unattended pool work defaults to `offer`. Whether an automated dispatcher assigning
+tasks to a member's own seat stays inside a vendor's personal-use terms is genuinely
+unresolved, so the conservative setting is the default and `auto` is opt-in per node.
+
+## Motion
+
+Motion shows a value changing; that is its whole job.
+
+- The request pipeline animates off real run state — packets travel the edges only
+  while work is in flight, and the stage a run is in lights up.
+- A droplet lands on a basin each time tokens are actually drawn, and the surface
+  rings where it hits.
+- Numbers roll rather than crossfade, because the direction of travel is information.
+- A basin's waterline moves only while a run is streaming against that source.
+- Task graph edges march only while the dependency they carry is running.
+
+None of it is SMIL or a JS timer, so the single `prefers-reduced-motion` rule in
+the stylesheet stops all of it at once. Nothing animates while the system is idle.
 
 ## What this deployment is not, yet
 

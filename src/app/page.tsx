@@ -7,6 +7,8 @@ import { Stack } from '@/components/Stack';
 import { Tide } from '@/components/Tide';
 import { ME, useWorkspace } from '@/components/WorkspaceProvider';
 import { TIER_COPY, pickRung, type Tier } from '@/lib/ladder/rungs';
+import { Ladder } from '@/components/Ladder';
+import { Flow, type StageId } from '@/components/motion/Flow';
 import { positions } from '@/lib/meter/ledger';
 import { PRESETS, type PresetName } from '@/lib/router/select';
 import { fillFraction } from '@/lib/router/headroom';
@@ -33,6 +35,21 @@ export default function PoolPage() {
   const nowHour = localParts(now, Intl.DateTimeFormat().resolvedOptions().timeZone).hour;
 
   const running = ws.runs.filter((r) => r.state === 'streaming');
+
+  // The pipeline stage the newest run is actually in, so the diagram animates
+  // off real state rather than a timer.
+  const newest = ws.runs[0];
+  const stage: StageId | null = !newest
+    ? null
+    : newest.state === 'streaming'
+      ? 'execute'
+      : newest.state === 'metering'
+        ? 'meter'
+        : newest.state === 'done'
+          ? 'post'
+          : newest.state === 'failed'
+            ? 'select'
+            : 'admit';
 
   // Always-on: what the next frontier-targeted request would actually land on.
   const nextPick = pickRung('frontier' as Tier, ws.rungs, {
@@ -104,6 +121,30 @@ export default function PoolPage() {
         )}
       </div>
 
+      <div className="panel">
+        <Flow
+          active={running.length}
+          activeStage={stage}
+          failedStage={newest?.state === 'failed' ? 'select' : null}
+        />
+      </div>
+
+      <section className="panel">
+        <div className="spread">
+          <h2>The ladder</h2>
+          <span className="hint">where work is landing, and how far there is left to fall</span>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <Ladder
+            rungs={ws.rungs}
+            candidates={candidates}
+            now={now}
+            currentRungId={nextPick.kind === 'picked' ? nextPick.rung.id : null}
+            target="frontier"
+          />
+        </div>
+      </section>
+
       <Tide
         spentUsd={spentTodayUsd}
         budgetUsd={ws.pool.budgetCapUsd}
@@ -127,7 +168,7 @@ export default function PoolPage() {
           <h2>Basins</h2>
           <span className="hint">A personal seat never joins the pool. It still breaks your own stall.</span>
         </div>
-        <div className="grid cols3" style={{ marginTop: 10 }}>
+        <div className="grid cols3 riseIn" style={{ marginTop: 10 }}>
           {live.map((s) => (
             <Basin
               key={s.id}

@@ -482,3 +482,286 @@ fieldset { border: 0; margin: 0; padding: 0; }
   .shell { padding: 18px 14px 56px; }
   h1 { font-size: 25px; }
 }
+
+/* ===========================================================================
+   MOTION
+   Every animation below encodes a value or a transition. Nothing moves while
+   the system is idle, and the reduced-motion block at the end of this file
+   neutralises all of it — which is why none of these are SMIL or JS timers.
+   =========================================================================== */
+
+/* ---- odometer: direction of travel is information ------------------------ */
+
+.odometer {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.odoDigit {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: baseline;
+  width: 0.62em;
+  position: relative;
+}
+.odoStrip {
+  display: flex;
+  flex-direction: column;
+  height: 1000%;
+  transition: transform 420ms var(--ease-settle);
+}
+.odoStrip > span {
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.odoSep { display: inline-block; width: 0.34em; text-align: center; }
+.odoSuffix { font-size: 0.55em; color: var(--ink-2); margin-left: 0.2em; }
+
+/* ---- sparkline: draws itself once, on arrival ---------------------------- */
+
+.sparkline { display: block; overflow: visible; }
+.sparkPath { animation: draw 700ms var(--ease-out) both; }
+@keyframes draw {
+  from { stroke-dashoffset: var(--len, 400px); opacity: 0.4; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+.sparkHead { animation: popIn 300ms var(--ease-settle) 600ms both; }
+@keyframes popIn {
+  from { r: 0; opacity: 0; }
+  to { r: 2; opacity: 1; }
+}
+
+/* ---- flow: the request pipeline ------------------------------------------ */
+
+.flowWrap { display: flex; flex-direction: column; gap: 8px; }
+.flow { width: 100%; height: auto; display: block; }
+.flowLabel {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.flowSub { font-family: var(--sans); font-size: 9.5px; fill: var(--ink-2); }
+.flowEffect {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--chip);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.flowFoot { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.flowFoot .muted { flex: 1 1 320px; line-height: 1.45; }
+
+.flowPacket {
+  animation: packet 1.15s linear infinite;
+  transform-box: fill-box;
+}
+@keyframes packet {
+  0% { transform: translateX(0); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateX(var(--travel, 100px)); opacity: 0; }
+}
+.flowHalo { animation: halo 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes halo {
+  0%, 100% { opacity: 0.3; r: 9; }
+  50% { opacity: 0.08; r: 14; }
+}
+
+/* ---- basin: a droplet lands each time tokens arrive ---------------------- */
+
+.vessel .ripple {
+  position: absolute;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ripple 900ms var(--ease-out) forwards;
+}
+@keyframes ripple {
+  from { transform: scale(0.15); opacity: 0.85; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+.vessel .drop {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 4px;
+  height: 7px;
+  margin-left: -2px;
+  border-radius: 0 0 50% 50%;
+  background: var(--water);
+  animation: drop 520ms cubic-bezier(0.5, 0, 0.9, 0.6) forwards;
+}
+@keyframes drop {
+  from { transform: translateY(0) scaleY(0.7); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: translateY(var(--fall, 60px)) scaleY(1.5); opacity: 0.9; }
+}
+
+/* ---- chips stack in, one at a time --------------------------------------- */
+
+.chipMark { animation: chipIn 260ms var(--ease-settle) both; }
+@keyframes chipIn {
+  from { transform: translateY(6px) scaleX(0.4); opacity: 0; }
+  to { transform: translateY(0) scaleX(1); opacity: 0.9; }
+}
+
+/* ---- the ladder: dropping a rung is a movement, so it looks like one ------ */
+
+.ladder { display: flex; flex-direction: column; gap: 4px; }
+.ladderRung {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--r);
+  background: var(--panel);
+  transition: border-color 260ms var(--ease-out), background 260ms var(--ease-out), transform 320ms var(--ease-settle);
+}
+.ladderRung[data-state='current'] {
+  border-left-color: var(--water);
+  background: var(--foam);
+  transform: translateX(6px);
+}
+.ladderRung[data-state='spent'] { opacity: 0.5; border-left-color: var(--coral); }
+.ladderRung[data-state='above'] { border-left-color: var(--line); }
+.ladderRung .rungFill { flex: 1; }
+.ladderDrop {
+  display: inline-block;
+  color: var(--shallow);
+  animation: nudgeDown 1.4s ease-in-out infinite;
+}
+@keyframes nudgeDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+/* ---- presence, stream and task graph (rooms) ----------------------------- */
+
+.presence { display: flex; gap: -6px; align-items: center; }
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  background: var(--water-deep);
+  color: var(--on-deep);
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-right: -7px;
+  animation: popIn2 240ms var(--ease-settle) both;
+}
+.avatar[data-live='true']::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--water);
+  transform: translate(11px, 9px);
+  border: 1.5px solid var(--panel);
+  animation: blip 2s ease-in-out infinite;
+}
+@keyframes popIn2 {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes blip {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.eventRow {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  animation: slideIn 220ms var(--ease-out) both;
+}
+@keyframes slideIn {
+  from { transform: translateY(-5px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.eventSeq { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+.eventKind {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink-1);
+  white-space: nowrap;
+}
+.eventKind[data-k^='text'] { border-color: var(--water); color: var(--water-deep); }
+.eventKind[data-k^='cost'] { border-color: var(--chip); color: var(--chip); }
+.eventKind[data-k^='run'] { border-color: var(--water-deep); }
+.eventKind[data-k^='task'] { border-color: var(--ink-2); }
+:root[data-theme='dark'] .eventKind[data-k^='text'] { color: var(--water); }
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  background: var(--water);
+  vertical-align: text-bottom;
+  animation: caret 1.05s steps(2, start) infinite;
+}
+@keyframes caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.graph { max-width: 100%; height: auto; display: block; }
+.graphEdge {
+  stroke: var(--line);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 4 3;
+}
+.graphEdge[data-satisfied='true'] { stroke: var(--water); stroke-dasharray: none; }
+.graphEdge[data-flowing='true'] { animation: march 900ms linear infinite; }
+@keyframes march {
+  to { stroke-dashoffset: -14; }
+}
+.graphNode { transition: transform 300ms var(--ease-settle); cursor: pointer; }
+.graphNode:hover { transform: translateY(-2px); }
+.graphNode text { font-family: var(--sans); font-size: 10.5px; }
+.graphPulse { animation: halo 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+/* ---- staged entrance for grids (once, on mount) -------------------------- */
+
+.riseIn > * { animation: rise 320ms var(--ease-out) both; }
+.riseIn > *:nth-child(1) { animation-delay: 0ms; }
+.riseIn > *:nth-child(2) { animation-delay: 45ms; }
+.riseIn > *:nth-child(3) { animation-delay: 90ms; }
+.riseIn > *:nth-child(4) { animation-delay: 135ms; }
+.riseIn > *:nth-child(5) { animation-delay: 180ms; }
+.riseIn > *:nth-child(6) { animation-delay: 225ms; }
+.riseIn > *:nth-child(n + 7) { animation-delay: 270ms; }
+@keyframes rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ---- value-change flash: which cell just moved --------------------------- */
+
+.flash { animation: flash 700ms var(--ease-out); }
+@keyframes flash {
+  from { background: var(--foam); }
+  to { background: transparent; }
+}

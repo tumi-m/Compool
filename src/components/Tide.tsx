@@ -1,6 +1,8 @@
 'use client';
 
 import { clockAt, duration, usd } from '@/lib/format';
+import { Odometer } from './motion/Odometer';
+import { Sparkline } from './motion/Sparkline';
 
 /**
  * §14.7. The rate panel: spend across the session, the current burn, and a
@@ -39,17 +41,22 @@ export function Tide({
         <div>
           <div className="sectionLabel">Spent this session</div>
           <div className="bigNum">
-            {usd(spentUsd)}
+            <Odometer value={spentUsd} decimals={2} prefix="$" ariaLabel={`Spent ${usd(spentUsd)}`} />
             {budgetUsd !== null ? <span className="unit">of {usd(budgetUsd)}</span> : null}
           </div>
         </div>
         <div>
           <div className="sectionLabel">Burn</div>
-          <div className="num" style={{ fontSize: 20 }}>{usd(burnUsdPerHour)}<span className="muted small">/h</span></div>
+          <div className="num" style={{ fontSize: 20 }}>
+            <Odometer value={burnUsdPerHour} decimals={2} prefix="$" suffix="/h" ariaLabel={`Burning ${usd(burnUsdPerHour)} per hour`} />
+          </div>
         </div>
         <div>
           <div className="sectionLabel">Time to empty</div>
           <div className="num" style={{ fontSize: 20 }}>{duration(emptyInMs)}</div>
+        </div>
+        <div style={{ alignSelf: 'flex-end' }}>
+          <Sparkline points={hourly.length > 1 ? hourly : [0, 0]} width={130} height={30} label="Load through the day" />
         </div>
       </div>
 

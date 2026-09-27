@@ -95,6 +95,38 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * *
         <li>Model names in the ladder are supplied by the operator and unverified. Confirm them against each provider’s own catalogue before routing real traffic; the mechanism does not depend on the names.</li>
       </ul>
 
+      <h2>Rooms</h2>
+      <p>
+        A room holds the people present, a context reference, a task graph and the run history. The
+        distinguishing feature is not chat — it is that <strong>a run is a first-class shared object</strong>:
+        anyone can watch it live, see what it costs as it costs it, or pick it up if the person who started it
+        went to bed.
+      </p>
+      <ul>
+        <li><strong>SSE, not WebSockets.</strong> The room is one-directional and every client action is an ordinary POST. SSE survives proxies and reconnects natively; a second protocol would buy nothing.</li>
+        <li><strong>Every event carries a sequence number.</strong> On reconnect the client sends the last one it actually saw and the server replays exactly the gap — no gaps and no duplicates. Drop the connection in the room to watch it happen.</li>
+        <li><strong>A heartbeat comment frame every 15 seconds</strong>, regardless of model output. Intermediaries close long-lived connections when they go quiet, and this is what keeps a slow run alive.</li>
+        <li><strong>Backpressure.</strong> Cost and headroom ticks are capped at two a second, text deltas coalesce to thirty. A room with six agents must not push four hundred events a second at a phone.</li>
+        <li><strong>Structured events only.</strong> The model never emits markup and the client never renders model-authored HTML. Anything that fails validation at the boundary is refused, not coerced.</li>
+      </ul>
+      <p>
+        The task graph is an explicit DAG, not a transcript. Independent tasks dispatch concurrently and the
+        topological order is the execution plan. A cycle is rejected at insert with the offending path, and
+        claiming is first-write-wins — which is what stops two people doing the same thing at 2am.
+      </p>
+
+      <h2>Motion</h2>
+      <p>
+        Motion here shows a value changing; that is its whole job. The request pipeline animates off real run
+        state, a droplet lands on a basin each time tokens are actually drawn, numbers roll rather than
+        crossfade because the direction of travel is information, and the surface line on a basin moves only
+        while a run is streaming against that source.
+      </p>
+      <p>
+        None of it is SMIL or a JavaScript timer, which means the single <code>prefers-reduced-motion</code>{' '}
+        rule in the stylesheet stops all of it at once. Nothing animates while the system is idle.
+      </p>
+
       <h2>What this deployment is</h2>
       <p>
         The app in §6.1 — the UI, the pure router, the pure meter, the ledger and the preload scheduler — running
@@ -103,7 +135,8 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * *
       <ul>
         <li>No vault. There is no KMS configured, so the connect flow refuses to accept a key rather than collecting a secret it cannot protect.</li>
         <li>No gateway. Long agent runs exceed a serverless function’s ceiling, and a run that dies at the ceiling loses its metering tail — which is the one thing that must never be lost. That service is separate by design.</li>
-        <li>No node daemon. Class B and Class C sources here are stand-ins with simulated headroom.</li>
+        <li>No node daemon. The pairing screen shows the real flow and the real constraints, but Class B and Class C sources here are stand-ins with simulated headroom.</li>
+        <li>The room log is per-instance. That is enough to demonstrate and test the transport contract and not enough to fan out across instances; the production shape is Postgres plus one Redis channel per room, and <code>src/lib/room/registry.ts</code> is the only file that changes.</li>
         <li>The price book is synthetic and labelled as such on every screen that shows money.</li>
       </ul>
       <p>

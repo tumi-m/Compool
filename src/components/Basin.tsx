@@ -1,8 +1,28 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { fillFraction, projectedHeadroom, tideLevel } from '@/lib/router/headroom';
 import { clockAt, pct, tokens } from '@/lib/format';
 import type { CapacitySource, Headroom } from '@/lib/types';
+
+/** Emit a droplet whenever the reported token count actually falls. */
+function useDroplets(tokens: number | null, live: boolean): number[] {
+  const [drops, setDrops] = useState<number[]>([]);
+  const prev = useRef<number | null>(tokens);
+  useEffect(() => {
+    if (tokens === null || prev.current === null) {
+      prev.current = tokens;
+      return;
+    }
+    if (live && tokens < prev.current) {
+      const id = Date.now() + Math.random();
+      setDrops((d) => [...d.slice(-2), id]);
+      window.setTimeout(() => setDrops((d) => d.filter((x) => x !== id)), 1400);
+    }
+    prev.current = tokens;
+  }, [tokens, live]);
+  return drops;
+}
 
 const CLASS_LABEL: Record<string, string> = { A: 'metered key', B: 'owned compute', C: 'personal seat' };
 const LEVEL_WORD: Record<string, string> = { flood: 'high', ebb: 'ebbing', shallow: 'shallow', slack: 'slack water' };
@@ -27,6 +47,7 @@ export function Basin({
 }) {
   const f = fillFraction(headroom, now);
   const level = tideLevel(f);
+  const drops = useDroplets(headroom?.tokens ?? null, live);
   const p = projectedHeadroom(headroom, now);
   const dead = source.status === 'revoked' || source.status === 'exhausted';
   const shown = dead ? 0 : (f ?? 0);
@@ -57,6 +78,17 @@ export function Basin({
           <>
             <div className="fill" data-level={dead ? 'slack' : level} style={{ height: `${shown * 100}%` }} />
             <div className="waterline" style={{ bottom: `calc(${shown * 100}% - 1px)` }} />
+            {/* A droplet lands each time tokens are actually drawn, and the
+                surface rings where it hits. Consumption you can see. */}
+            {drops.map((d) => (
+              <span key={d} aria-hidden="true">
+                <span className="drop" style={{ ['--fall' as string]: `${(1 - shown) * 88 - 6}px` }} />
+                <span
+                  className="ripple"
+                  style={{ bottom: `calc(${shown * 100}% - 17px)`, animationDelay: '380ms' }}
+                />
+              </span>
+            ))}
           </>
         )}
       </div>
