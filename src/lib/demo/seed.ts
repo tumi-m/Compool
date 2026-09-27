@@ -210,6 +210,28 @@ export function seedSaturated(now = Date.now()): Workspace {
   };
 }
 
+/**
+ * The shape the app currently understands.
+ *
+ * Restoring a workspace saved by an older build and trusting its shape is how a
+ * user ends up looking at a white screen after a deploy — every field this code
+ * reads has to actually be there. Anything that does not match is discarded for
+ * a fresh seed, which costs a preview workspace and saves the session.
+ */
+export function isWorkspace(v: unknown): v is Workspace {
+  if (typeof v !== 'object' || v === null) return false;
+  const w = v as Partial<Workspace>;
+  const arrays: (keyof Workspace)[] = [
+    'users', 'members', 'sources', 'nodes', 'runs', 'usage', 'ledger', 'preload', 'rungs', 'ideas', 'hourlyLoad',
+  ];
+  if (!arrays.every((k) => Array.isArray(w[k]))) return false;
+  if (w.hourlyLoad!.length !== 24) return false;
+  if (typeof w.headroom !== 'object' || w.headroom === null) return false;
+  if (typeof w.pool !== 'object' || w.pool === null || typeof w.pool.id !== 'string') return false;
+  if (typeof w.seededAt !== 'string' || !Number.isFinite(Date.parse(w.seededAt))) return false;
+  return true;
+}
+
 export function seedWorkspace(now = Date.now()): Workspace {
   const users: User[] = [
     { id: ME, handle: 'you', displayName: 'You' },

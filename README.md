@@ -186,6 +186,30 @@ Unattended pool work defaults to `offer`. Whether an automated dispatcher assign
 tasks to a member's own seat stays inside a vendor's personal-use terms is genuinely
 unresolved, so the conservative setting is the default and `auto` is opt-in per node.
 
+## The capacity field
+
+An ambient generative canvas behind the pool and the room — and not one pixel of
+it is decoration. Every quantity in it is read off the pool:
+
+| what you see | what it is |
+|---|---|
+| one lane per source | the connected sources, ordered as the basins are |
+| particle density in a lane | tokens of headroom remaining there |
+| drift speed | how fast that bucket is actually refilling, right now |
+| lane colour | that source's tide level |
+| a lane pulling down, current accelerating | a run streaming against it, tokens leaving |
+| still water, nothing moving | nothing connected — the empty state |
+
+This is what lets it be atmospheric *and* honest. A token-bucket provider
+replenishes continuously, so the field drifts even when nobody is working —
+because capacity genuinely is coming back at that moment. It stops dead when every
+bucket is full, which is equally true.
+
+Canvas rather than SVG, because a thousand particles in the DOM is a different
+kind of mistake. Measured at a locked 60fps with no dropped frames; it draws
+exactly zero times while the tab is hidden, and exactly one frame under
+`prefers-reduced-motion`.
+
 ## Motion
 
 Motion shows a value changing; that is its whole job.
@@ -227,10 +251,12 @@ baseline.
 
 The framework floor is about 100 KB gzip — an empty route costs that before a
 line of this code runs — so the plan's 120 KB budget leaves roughly 20 KB per
-route. Twelve of fourteen routes are inside it. The pool (122.7 KB) and the room
-(121.1 KB) are over, and the script records that as a **named exception with a
+route. Twelve of fourteen routes are inside it. The pool (125.4 KB) and the room
+(123.5 KB) are over, and the script records that as a **named exception with a
 stated reason** rather than by raising the budget, so any other route crossing
-120 KB still fails the build. Splitting the two diagrams out with `next/dynamic`
+120 KB still fails the build. The capacity field cost 2.7 KB and 2.4 KB
+respectively, and the exception records that too — a budget you can quietly move
+is not a budget. Splitting the two diagrams out with `next/dynamic`
 was tried and reverted: both render above the fold, so deferring them buys a
 skeleton flash rather than a faster first paint.
 

@@ -12,12 +12,15 @@ import { ME, useWorkspace } from '@/components/WorkspaceProvider';
 import { TIER_COPY, pickRung, type Tier } from '@/lib/ladder/rungs';
 import { Ladder } from '@/components/Ladder';
 import { Flow, type StageId } from '@/components/motion/Flow';
+import { CapacityField } from '@/components/motion/CapacityField';
+import { Odometer } from '@/components/motion/Odometer';
+import { poolReplenishRate } from '@/lib/router/replenish';
 import { positions } from '@/lib/meter/ledger';
 import { PRESETS, type PresetName } from '@/lib/router/select';
 import { fillFraction } from '@/lib/router/headroom';
 import { findTrough } from '@/lib/preload/schedule';
 import { localParts } from '@/lib/preload/schedule';
-import { duration, relative, usd } from '@/lib/format';
+import { duration, relative, tokens as fmtTokens, usd } from '@/lib/format';
 
 export default function PoolPage() {
   const {
@@ -33,6 +36,13 @@ export default function PoolPage() {
   const elapsedH = Math.max(1 / 60, (now - Date.parse(ws.seededAt)) / 3_600_000);
   const burn = spentTodayUsd / elapsedH;
   const emptyIn = budgetRemainingUsd === null || burn <= 0 ? null : (budgetRemainingUsd / burn) * 3_600_000;
+
+  // The same quantities the field draws, stated as text beside it — a picture of
+  // a number is not a number, and the field is aria-hidden.
+  const headrooms = live.map((s) => ws.headroom[s.id] ?? null);
+  const refillPerSec = poolReplenishRate(headrooms, now);
+  const totalTokens = headrooms.reduce((a, h) => a + (h ? h.tokens : 0), 0);
+  const totalLimit = headrooms.reduce((a, h) => a + (h ? h.limitTokens : 0), 0);
 
   const trough = findTrough(ws.hourlyLoad, 3);
   const nowHour = localParts(now, Intl.DateTimeFormat().resolvedOptions().timeZone).hour;
@@ -91,13 +101,52 @@ export default function PoolPage() {
 
   return (
     <div className="stackv" style={{ gap: 20 }}>
-      <div className="pageHead spread">
-        <div>
-          <h1>{ws.pool.name}</h1>
-          <p>
-            {live.length} sources · {ws.members.length} members · settle {ws.pool.settlePolicy.replace('_', ' ')}
-          </p>
+      <div className="heroBand">
+        <CapacityField sources={live} headroom={ws.headroom} streaming={streamingSourceIds} />
+        <div className="heroInner">
+          <div className="spread">
+            <div>
+              <h1>{ws.pool.name}</h1>
+              <p style={{ marginBottom: 0 }}>
+                {live.length} sources · {ws.members.length} members · settle{' '}
+                {ws.pool.settlePolicy.replace('_', ' ')}
+              </p>
+            </div>
+            <div className="heroStats">
+              <div className="heroStat">
+                <div className="sectionLabel">Capacity in the pool</div>
+                <div className="num" style={{ fontSize: 25 }}>
+                  {fmtTokens(totalTokens)}
+                  <span className="muted small"> / {fmtTokens(totalLimit)}</span>
+                </div>
+              </div>
+              <div className="heroStat">
+                <div className="sectionLabel">Coming back</div>
+                <div className="num" style={{ fontSize: 25 }}>
+                  <Odometer
+                    value={Math.round(refillPerSec)}
+                    decimals={0}
+                    suffix=" tok/s"
+                    ariaLabel={`Replenishing at ${Math.round(refillPerSec)} tokens per second`}
+                  />
+                </div>
+              </div>
+              <div className="heroStat">
+                <div className="sectionLabel">Streaming</div>
+                <div className="num" style={{ fontSize: 25 }}>{streamingSourceIds.size}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="heroLegend">
+            <span><i /> one lane per source · density is headroom</span>
+            <span><i data-k="ebb" /> drift is the bucket refilling, right now</span>
+            <span><i data-k="slack" /> a lane pulls down while work draws on it</span>
+          </div>
         </div>
+      </div>
+
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: -8 }}>
         <div className="row">
           <label htmlFor="preset" className="srOnly">Routing intent</label>
           <select
@@ -304,12 +353,15 @@ export default function PoolPage() {
 function EmptyState() {
   return (
     <div className="stackv" style={{ gap: 18 }}>
-      <div className="pageHead">
-        <h1>An empty basin</h1>
-        <p>
-          Nothing is connected yet, so there is nothing to spend. Capacity comes in three kinds, and the kind
-          decides what TIDEPOOL is allowed to do with it.
-        </p>
+      <div className="heroBand">
+        <CapacityField sources={[]} headroom={{}} streaming={new Set()} height={150} />
+        <div className="heroInner">
+          <h1>An empty basin</h1>
+          <p style={{ marginBottom: 0 }}>
+            Nothing is connected yet, so there is nothing to spend. Capacity comes in three kinds, and the kind
+            decides what TIDEPOOL is allowed to do with it.
+          </p>
+        </div>
       </div>
       <div className="grid cols3">
         <div className="panel">

@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { seedSaturated, seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
+import { isWorkspace, seedSaturated, seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
 import { register } from '@/lib/policy/register';
 import { PRESETS, select, type PresetName } from '@/lib/router/select';
 import { HEADROOM_MARGIN_TOKENS, fillFraction } from '@/lib/router/headroom';
@@ -73,7 +73,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     let restored: Workspace | null = null;
     try {
       const raw = window.localStorage.getItem(KEY);
-      if (raw) restored = JSON.parse(raw) as Workspace;
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      // A workspace saved by an older build has an older shape, and rendering
+      // against it is a white screen rather than a degraded page. Validate, and
+      // start fresh when it does not match.
+      restored = isWorkspace(parsed) ? parsed : null;
+      if (raw && !restored) window.localStorage.removeItem(KEY);
     } catch {
       restored = null;
     }

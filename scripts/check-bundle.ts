@@ -35,8 +35,14 @@ const SLACK_KB = 5;    // a regression larger than this fails the build
  * first paint.
  */
 const EXCEPTIONS: Record<string, { kb: number; why: string }> = {
-  '/page': { kb: 124, why: 'Basins, tide, ladder, pipeline and the windowed run list on one screen.' },
-  '/room/page': { kb: 123, why: 'Live stream, pipeline, task graph and the event log on one screen.' },
+  '/page': {
+    kb: 126,
+    why: 'Basins, tide, ladder, pipeline, capacity field and the windowed run list on one screen. The field added 2.7 KB in Sep 2026; the gap to the 120 KB spec budget is now 5.4 KB.',
+  },
+  '/room/page': {
+    kb: 125,
+    why: 'Live stream, pipeline, task graph, capacity field and the event log on one screen. The field added 2.4 KB in Sep 2026; the gap to the 120 KB spec budget is now 3.5 KB.',
+  },
 };
 const NEXT = join(process.cwd(), '.next');
 const BASELINE = join(process.cwd(), 'data', 'bundle-baseline.json');

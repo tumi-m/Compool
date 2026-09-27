@@ -115,6 +115,20 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * *
         claiming is first-write-wins — which is what stops two people doing the same thing at 2am.
       </p>
 
+      <h2>The capacity field</h2>
+      <p>
+        The generative canvas behind the pool and the room is ambient, and none of it is decoration. One lane
+        per source; particle density is the headroom remaining there; drift speed is how fast that bucket is
+        actually refilling; lane colour is its tide level; and a lane pulls down and accelerates while a run
+        draws on it.
+      </p>
+      <p>
+        That is what lets it be atmospheric and honest at once. A token-bucket provider replenishes
+        continuously, so the field drifts even when nobody is working — because capacity genuinely is coming
+        back at that moment — and it holds still when every bucket is full. With nothing connected it draws
+        still water, which is the empty state’s whole argument.
+      </p>
+
       <h2>Motion</h2>
       <p>
         Motion here shows a value changing; that is its whole job. The request pipeline animates off real run

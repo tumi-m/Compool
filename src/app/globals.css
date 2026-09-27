@@ -232,17 +232,20 @@ button, .btn {
 }
 button:hover:not(:disabled), .btn:hover { background: var(--foam); border-color: var(--water); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.primary {
+/* .btn is applied to links as well as buttons, so every modifier is written
+   element-agnostically — `button.primary` silently does nothing on an anchor. */
+.primary {
   background: var(--water);
   border-color: var(--water);
   color: #04222a;
   font-weight: 600;
 }
-button.primary:hover:not(:disabled) { background: var(--water-deep); border-color: var(--water-deep); color: var(--on-deep); }
-button.ghost { background: transparent; }
-button.danger { color: var(--coral); border-color: var(--line); }
-button.danger:hover:not(:disabled) { border-color: var(--coral); background: transparent; }
-button.tiny { min-height: 28px; padding: 4px 9px; font-size: 12px; }
+.primary:hover:not(:disabled) { background: var(--water-deep); border-color: var(--water-deep); color: var(--on-deep); }
+.ghost { background: transparent; }
+.danger { color: var(--coral); border-color: var(--line); }
+.danger:hover:not(:disabled) { border-color: var(--coral); background: transparent; }
+.tiny { min-height: 28px; padding: 4px 9px; font-size: 12px; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 input[type='text'], input[type='number'], input[type='password'], textarea, select {
   width: 100%;
@@ -826,3 +829,85 @@ fieldset { border: 0; margin: 0; padding: 0; }
 }
 .tideClockPip { fill: var(--ink-2); }
 .tideClockPip[data-in='true'] { fill: var(--chip); }
+
+/* ---- the capacity field: ambient, and entirely data-driven ---------------- */
+
+.heroBand {
+  position: relative;
+  /* Full-bleed out of the centred shell, so the field reads as the surface the
+     app sits on rather than a widget sitting on the page. Negative margins
+     only — adding width:100vw and padding on top of them over-constrains the
+     box and collapses the content column. */
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: -24px;
+  margin-bottom: 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.heroInner {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 22px 20px 18px;
+}
+.capacityField {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: block;
+  pointer-events: none;
+  /* The field is texture behind type, so it stays under the legibility
+     threshold rather than competing with the numbers it describes — and it
+     thins out toward the top, where the heading and the figures live. */
+  opacity: 0.85;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.55) 38%, #000 100%);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.55) 38%, #000 100%);
+}
+:root[data-theme='dark'] .capacityField { opacity: 1; }
+
+/* A soft horizontal fade so the field has no hard edges at the band margins. */
+.heroBand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--panel) 0%, transparent 14%, transparent 86%, var(--panel) 100%);
+}
+.heroInner > * { position: relative; z-index: 2; }
+
+.heroStats {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.heroStat .sectionLabel { margin-bottom: 2px; }
+.heroLegend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--ink-1);
+  font-family: var(--mono);
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.heroLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.heroLegend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--water);
+  display: inline-block;
+}
+.heroLegend i[data-k='ebb'] { background: var(--shallow); }
+.heroLegend i[data-k='slack'] { background: var(--coral); }
+
+@media (max-width: 640px) {
+  .heroBand { margin-top: -18px; margin-bottom: 16px; }
+  .heroInner { padding: 16px 14px 14px; }
+}

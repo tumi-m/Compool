@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useWorkspace, ME } from '@/components/WorkspaceProvider';
 import { Flow, type StageId } from '@/components/motion/Flow';
+import { CapacityField } from '@/components/motion/CapacityField';
 import { TaskGraph } from '@/components/TaskGraph';
 import { Odometer } from '@/components/motion/Odometer';
 import { Sparkline } from '@/components/motion/Sparkline';
@@ -37,7 +38,7 @@ const STAGE_OF: Partial<Record<RoomEvent['type'], StageId>> = {
 type Conn = 'connecting' | 'live' | 'replaying' | 'dropped';
 
 export default function RoomPage() {
-  const { ws, now } = useWorkspace();
+  const { ws, now, streamingSourceIds } = useWorkspace();
   const [events, setEvents] = useState<RoomEvent[]>([]);
   const [conn, setConn] = useState<Conn>('connecting');
   const [tasks, setTasks] = useState<Task[]>(SEED_TASKS);
@@ -160,19 +161,42 @@ export default function RoomPage() {
 
   return (
     <div className="stackv" style={{ gap: 18 }}>
-      <div className="pageHead spread">
-        <div>
-          <h1>{ws.pool.name} · room</h1>
-          <p>
-            A run is a first-class shared object. Anyone here can watch it live, see what it costs as it costs
-            it, or pick it up if the person who started it went to bed.
-          </p>
-        </div>
-        <div className="row">
-          <Presence ids={present} />
-          <span className={`badge ${conn === 'live' ? 'water' : conn === 'dropped' ? 'coral' : 'shallow'}`}>
-            {conn === 'live' ? 'streaming' : conn}
-          </span>
+      <div className="heroBand">
+        <CapacityField
+          sources={ws.sources.filter((s) => s.status !== 'revoked')}
+          headroom={ws.headroom}
+          streaming={streamingSourceIds}
+          height={168}
+        />
+        <div className="heroInner">
+          <div className="spread">
+            <div>
+              <h1>{ws.pool.name} · room</h1>
+              <p style={{ marginBottom: 0 }}>
+                A run is a first-class shared object. Anyone here can watch it live, see what it costs as it
+                costs it, or pick it up if the person who started it went to bed.
+              </p>
+            </div>
+            <div className="heroStats">
+              <div className="heroStat">
+                <div className="sectionLabel">Present</div>
+                <div className="num" style={{ fontSize: 25 }}>{present.length}</div>
+              </div>
+              <div className="heroStat">
+                <div className="sectionLabel">Events</div>
+                <div className="num" style={{ fontSize: 25 }}>{events.length}</div>
+              </div>
+              <div className="heroStat">
+                <div className="sectionLabel">Connection</div>
+                <div className="row" style={{ gap: 8 }}>
+                  <Presence ids={present} />
+                  <span className={`badge ${conn === 'live' ? 'water' : conn === 'dropped' ? 'coral' : 'shallow'}`}>
+                    {conn === 'live' ? 'streaming' : conn}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
