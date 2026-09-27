@@ -10,9 +10,19 @@ dry while another sat idle in the tab next door.
 
 ```bash
 pnpm install
-pnpm dev            # http://localhost:3000
-pnpm test           # 58 unit tests, offline, under a second
+pnpm dev              # http://localhost:3000
+pnpm test             # 129 unit tests, offline, ~1s
 pnpm build
+pnpm check:bundle     # per-route gzip budget, fails on regression
+pnpm check:policy     # which provider policy files need re-reading
+```
+
+Browser tests run on demand against a deployment rather than in the default
+suite, which has to stay fast enough that people keep running it:
+
+```bash
+pnpm build && pnpm start &
+E2E_BASE_URL=http://127.0.0.1:3000 pnpm test:e2e
 ```
 
 Nothing is required to run it. No database, no keys, no services.
@@ -209,6 +219,21 @@ rather than leaving them as untested code paths.
   the run list windows. Designed before the data existed, because a real hackathon
   produces it in hour one.
 
+## Performance
+
+`pnpm check:bundle` measures gzipped first-load JavaScript per route from Next's
+own build manifest and fails on a regression over 5 KB against the committed
+baseline.
+
+The framework floor is about 100 KB gzip — an empty route costs that before a
+line of this code runs — so the plan's 120 KB budget leaves roughly 20 KB per
+route. Twelve of fourteen routes are inside it. The pool (122.7 KB) and the room
+(121.1 KB) are over, and the script records that as a **named exception with a
+stated reason** rather than by raising the budget, so any other route crossing
+120 KB still fails the build. Splitting the two diagrams out with `next/dynamic`
+was tried and reverted: both render above the fold, so deferring them buys a
+skeleton flash rather than a faster first paint.
+
 ## What this deployment is not, yet
 
 - **No vault.** With no KMS configured the connect flow refuses to accept a key
@@ -229,5 +254,18 @@ They ship marked unverified rather than filled in from memory, and the connect
 screen says so.
 
 ```bash
-pnpm tsx scripts/verify-policy.ts
+pnpm check:policy
 ```
+
+## Verified rather than asserted
+
+- The SSE contract, end to end: a fresh client gets everything, a resume gets
+  exactly the gap, both `Last-Event-ID` and the query parameter work, and live
+  events arrive while connected.
+- All four of the room's acceptance criteria, in a real browser: a teammate's run
+  streams in, a dropped connection replays with no gaps and no duplicates, two
+  browsers see the same run, and a claim holds.
+- No accessibility findings across eight routes — every control named, every
+  meaningful SVG labelled, no horizontal overflow, keyboard reaches the interface.
+- Under `prefers-reduced-motion`, nothing on the page animates at all.
+- The shipped demo data satisfies the double-entry invariant.

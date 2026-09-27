@@ -13,7 +13,12 @@
     "test:unit": "vitest run test/unit",
     "test:policy": "vitest run test/policy",
     "test:meter": "vitest run test/meter",
-    "test:preload": "vitest run test/preload"
+    "test:preload": "vitest run test/preload",
+    "check:bundle": "next build && tsx scripts/check-bundle.ts",
+    "check:policy": "tsx scripts/verify-policy.ts",
+    "test:room": "vitest run test/room",
+    "test:ladder": "vitest run test/ladder",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "next": "15.5.4",
@@ -26,6 +31,7 @@
     "@types/react-dom": "19.1.7",
     "playwright": "1.56.1",
     "typescript": "5.9.2",
-    "vitest": "3.2.4"
+    "vitest": "3.2.4",
+    "tsx": "4.23.13"
   }
 }
