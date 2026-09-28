@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { seedSaturated, seedWorkspace } from '@/lib/demo/seed';
+import { seedWorkspace } from '@/lib/demo/seed';
+import { seedSaturated } from '@/lib/demo/saturated';
 import { findImbalances, positions } from '@/lib/meter/ledger';
 
 describe('the shipped demo data', () => {

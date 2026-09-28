@@ -65,8 +65,11 @@ const groupOf = (route: string): string => {
 
 const layouts = new Map<string, number>();
 const layoutChunks = new Map<string, Set<string>>();
+// Only a route group's root layout is a shell. A per-route layout that exists
+// to set a page title is a pass-through, not something every page pays for.
+const isShell = (r: string) => /^\/\([^)]+\)\/layout$/.test(r) || r === '/layout';
 for (const [route] of routes) {
-  if (!route.endsWith('/layout')) continue;
+  if (!isShell(route)) continue;
   layouts.set(route, sizeOf(route));
   layoutChunks.set(route, new Set(chunksOf(route)));
 }
@@ -74,7 +77,7 @@ for (const [route] of routes) {
 interface Row { route: string; total: number; shared: number; own: number }
 const rows: Row[] = [];
 for (const [route] of routes) {
-  if (route.endsWith('/layout')) continue;
+  if (route.endsWith('/layout')) continue; // shells above; pass-through title layouts are not pages
   // Next's internal not-found sits outside every group and has no shell to
   // charge against; reporting it as 100 KB of "page code" is noise.
   if (route === '/_not-found/page') continue;

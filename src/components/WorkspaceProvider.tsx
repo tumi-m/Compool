@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { isWorkspace, seedSaturated, seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
+import { isWorkspace, seedWorkspace, type Workspace, ME } from '@/lib/demo/seed';
 import { register } from '@/lib/policy/register';
 import { PRESETS, select, type PresetName } from '@/lib/router/select';
 import { HEADROOM_MARGIN_TOKENS, fillFraction } from '@/lib/router/headroom';
@@ -473,9 +473,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       cancelAll();
       setWs(seedWorkspace(Date.now()));
     },
+    // Loaded on demand: three hundred generated runs for one demo button have
+    // no business in the chunk every route downloads.
     saturate: () => {
       cancelAll();
-      setWs(seedSaturated(Date.now()));
+      void import('@/lib/demo/saturated').then(({ seedSaturated }) => setWs(seedSaturated(Date.now())));
     },
     addSource: (s) =>
       update((w) => ({

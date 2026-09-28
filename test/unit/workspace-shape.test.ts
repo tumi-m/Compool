@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isWorkspace, seedSaturated, seedWorkspace } from '@/lib/demo/seed';
+import { isWorkspace, seedWorkspace } from '@/lib/demo/seed';
+import { seedSaturated } from '@/lib/demo/saturated';
 
 describe('restoring a stored workspace', () => {
   it('accepts what this build itself writes', () => {
