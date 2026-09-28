@@ -29,6 +29,8 @@ export interface CapacitySource {
   createdAt: string;
   /** True when this source is a preview stand-in rather than a vaulted credential. */
   preview: boolean;
+  /** Owned compute and unverified gateways: where the node should find it. */
+  baseUrl?: string;
 }
 
 export interface Headroom {

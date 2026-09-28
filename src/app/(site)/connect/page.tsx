@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useToast } from '@/components/Toaster';
 import { ME, nextId, useWorkspace } from '@/components/WorkspaceProvider';
 import { register, freshness } from '@/lib/policy/register';
 import { INTEGRATIONS } from '@/lib/integrations/catalog';
@@ -76,16 +77,35 @@ export default function ConnectPage() {
   const [done, setDone] = useState<string | null>(null);
 
   const connected = new Set(ws.sources.filter((s) => s.status !== 'revoked').map((s) => s.credentialTypeId));
+  const { toast } = useToast();
+  const formRef = useRef<HTMLElement>(null);
+
+  // Picking a card opened the form below the fold, so the click looked like it
+  // did nothing. Bring the form to the person and put the cursor in it.
+  useEffect(() => {
+    if (!pick) return;
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const t = window.setTimeout(() => document.getElementById('label')?.focus({ preventScroll: true }), 250);
+    return () => window.clearTimeout(t);
+  }, [pick]);
 
   const connect = () => {
     if (!pick) return;
+    // Two sources with one name are two basins nobody can tell apart.
+    const wanted = label.trim() || pick.name;
+    const taken = new Set(ws.sources.filter((x) => x.status !== 'revoked').map((x) => x.label));
+    let finalLabel = wanted;
+    for (let n = 2; taken.has(finalLabel); n += 1) finalLabel = `${wanted} ${n}`;
+
     const s: CapacitySource = {
       id: nextId('src'),
       ownerUserId: ME,
       provider: pick.provider,
       credentialTypeId: pick.credentialTypeId,
       cls: pick.cls,
-      label: label.trim() || pick.name,
+      label: finalLabel,
+      // It was asked for and then thrown away. Kept now, for the node to use.
+      baseUrl: pick.needsBaseUrl && baseUrl.trim() ? baseUrl.trim() : undefined,
       // The §3 invariant applied at creation: a personal seat is device-only and
       // can never carry a pool id, whatever the form said.
       storageLocation: pick.cls === 'A' ? 'vault' : 'device',
@@ -100,6 +120,10 @@ export default function ConnectPage() {
     };
     addSource(s);
     setDone(s.label);
+    // The inline notice renders at the top of the page, above wherever the
+    // Connect button was — so it also goes somewhere the person can see.
+    toast(`${s.label} is connected and in the pool.`, { tone: 'good' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setPick(null);
     setLabel('');
     setBaseUrl('');
@@ -169,8 +193,8 @@ export default function ConnectPage() {
       </section>
 
       {pick ? (
-        <section className="panel">
-          <h2>{pick.name}</h2>
+        <section className="panel" ref={formRef} aria-labelledby="connect-form-title" style={{ scrollMarginTop: 12 }}>
+          <h2 id="connect-form-title">{pick.name}</h2>
           <p className="hint">{pick.line}</p>
 
           <div className="grid cols2" style={{ marginTop: 12 }}>

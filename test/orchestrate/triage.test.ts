@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateTokens, order, priorityOf, tierFor, triage, type Idea } from '@/lib/orchestrate/triage';
+import { estimateTokens, order, parseDump, priorityOf, reconcileIdeas, tierFor, triage, type Idea } from '@/lib/orchestrate/triage';
 import type { LadderContext, Rung } from '@/lib/ladder/rungs';
 import type { Candidate, CapacitySource } from '@/lib/types';
 
@@ -140,5 +140,55 @@ describe('the plan', () => {
     const p = triage([idea({ id: 'a' }), idea({ id: 'b' })], rungs, ctx([cand('ollama', null)]));
     expect(p.totalEstimatedTokens).toBe(p.tasks.reduce((a, t) => a + t.estimatedTokens, 0));
     expect(p.totalEstimatedTokens).toBeGreaterThan(0);
+  });
+});
+
+describe('capturing a burst', () => {
+  it('strips list markers and blank lines', () => {
+    const { fresh } = parseDump('- one\n\n2. two\n   \n* three\n4) four\n• five', []);
+    expect(fresh).toEqual(['one', 'two', 'three', 'four', 'five']);
+  });
+
+  it('skips an idea already in the plan, however it was typed', () => {
+    const { fresh, duplicates } = parseDump('First idea.\nfirst   IDEA\nsomething new', [idea({ text: 'first idea' })]);
+    expect(fresh).toEqual(['something new']);
+    expect(duplicates).toBe(2);
+  });
+
+  it('skips a duplicate within the same paste', () => {
+    const { fresh, duplicates } = parseDump('a thing\na thing', []);
+    expect(fresh).toEqual(['a thing']);
+    expect(duplicates).toBe(1);
+  });
+
+  it('lets a finished idea be captured again, since it is a new piece of work', () => {
+    expect(parseDump('first idea', [idea({ text: 'first idea', status: 'done' })]).fresh).toEqual(['first idea']);
+  });
+});
+
+describe('status that follows the run', () => {
+  const running = idea({ id: 'i', status: 'running', runId: 'r1' });
+
+  it('becomes done when its run is done — the bug was that it never did', () => {
+    expect(reconcileIdeas([running], [{ id: 'r1', state: 'done' }])[0].status).toBe('done');
+  });
+
+  it('goes back to planned when its run fails, so it can be retried rather than lost', () => {
+    const r = reconcileIdeas([running], [{ id: 'r1', state: 'failed' }])[0];
+    expect(r.status).toBe('planned');
+    expect(r.runId).toBeUndefined();
+  });
+
+  it('goes back to planned when its run no longer exists (the workspace was reset)', () => {
+    expect(reconcileIdeas([running], [])[0].status).toBe('planned');
+  });
+
+  it('leaves a run that is still going alone', () => {
+    expect(reconcileIdeas([running], [{ id: 'r1', state: 'metering' }])[0].status).toBe('running');
+  });
+
+  it('returns the same array when nothing changed, so it cannot loop a React effect', () => {
+    const ideas = [idea({ id: 'x' })];
+    expect(reconcileIdeas(ideas, [])).toBe(ideas);
   });
 });

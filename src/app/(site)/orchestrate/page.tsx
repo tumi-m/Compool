@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { nextId, useWorkspace } from '@/components/WorkspaceProvider';
-import { estimateTokens, priorityOf, tierFor, triage, type Idea } from '@/lib/orchestrate/triage';
+import { estimateTokens, parseDump, priorityOf, tierFor, triage, type Idea } from '@/lib/orchestrate/triage';
+import { useToast } from '@/components/Toaster';
 import { TIER_COPY, type Tier } from '@/lib/ladder/rungs';
 import { tokens } from '@/lib/format';
 
@@ -16,7 +17,9 @@ const SLOT_COPY = {
 } as const;
 
 export default function OrchestratePage() {
-  const { ws, ladderCtx, upsertIdea, removeIdea, startRun, reworkQueue, runRework } = useWorkspace();
+  const { ws, ladderCtx, upsertIdea, removeIdea, startRun, reworkQueue, runRework, update, lastRefusal } = useWorkspace();
+  const { toast } = useToast();
+  const finished = ws.ideas.filter((i) => i.status === 'done');
   const [dump, setDump] = useState('');
 
   const plan = useMemo(() => triage(ws.ideas, ws.rungs, ladderCtx), [ws.ideas, ws.rungs, ladderCtx]);
@@ -24,7 +27,7 @@ export default function OrchestratePage() {
 
   /** Thirty ideas arrive at once, so intake takes them thirty at a time. */
   const capture = () => {
-    const lines = dump.split('\n').map((l) => l.replace(/^[-*\d.)\s]+/, '').trim()).filter(Boolean);
+    const { fresh: lines, duplicates } = parseDump(dump, ws.ideas);
     const now = Date.now();
     lines.forEach((text, i) => {
       upsertIdea({
@@ -38,16 +41,46 @@ export default function OrchestratePage() {
       });
     });
     setDump('');
+    toast(
+      lines.length === 0
+        ? `Nothing new — ${duplicates === 1 ? 'that idea is' : 'those ideas are'} already in the plan.`
+        : `Captured ${lines.length} ${lines.length === 1 ? 'idea' : 'ideas'}` +
+            (duplicates ? `; ${duplicates} ${duplicates === 1 ? 'was' : 'were'} already in the plan.` : '.'),
+      { tone: lines.length ? 'good' : 'info' },
+    );
   };
 
   const dispatch = (idea: Idea, tier: Tier) => {
-    startRun({
+    const runId = startRun({
       title: idea.text.slice(0, 60),
       kind: 'bulk',
       estimatedTokens: idea.estimatedTokens ?? estimateTokens(idea),
       targetTier: tier,
     });
-    upsertIdea({ ...idea, status: 'running' });
+    if (!runId) {
+      // It used to be marked running regardless, and then stayed that way.
+      toast(`Did not dispatch. ${lastRefusal() ?? ''}`.trim(), { tone: 'warn', ms: 9000 });
+      return;
+    }
+    upsertIdea({ ...idea, status: 'running', runId });
+    toast(`Running: ${idea.text.slice(0, 48)}${idea.text.length > 48 ? '…' : ''}`, { tone: 'good' });
+  };
+
+  const remove = (idea: Idea) => {
+    const index = ws.ideas.findIndex((i) => i.id === idea.id);
+    removeIdea(idea.id);
+    toast(`Removed “${idea.text.slice(0, 40)}${idea.text.length > 40 ? '…' : ''}”.`, {
+      action: {
+        label: 'Undo',
+        run: () =>
+          update((w) => {
+            if (w.ideas.some((i) => i.id === idea.id)) return w;
+            const ideas = [...w.ideas];
+            ideas.splice(Math.min(index, ideas.length), 0, idea);
+            return { ...w, ideas };
+          }),
+      },
+    });
   };
 
   return (
@@ -225,12 +258,13 @@ export default function OrchestratePage() {
                           <button
                             type="button"
                             className="tiny"
-                            disabled={t.slot === 'blocked'}
+                            disabled={t.slot === 'blocked' || idea.status === 'running'}
                             onClick={() => dispatch(idea, t.tier)}
+                            aria-label={`Run ${idea.text}`}
                           >
-                            Run
+                            {idea.status === 'running' ? 'Running' : 'Run'}
                           </button>
-                          <button type="button" className="tiny danger" onClick={() => removeIdea(idea.id)}>×</button>
+                          <button type="button" className="tiny danger" onClick={() => remove(idea)} aria-label={`Remove ${idea.text}`}>×</button>
                         </div>
                       </td>
                     </tr>
@@ -241,6 +275,17 @@ export default function OrchestratePage() {
           </div>
         )}
       </section>
+
+      {finished.length > 0 ? (
+        <details className="panel">
+          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Finished ({finished.length})</summary>
+          <ul className="hint" style={{ margin: '10px 0 0', paddingLeft: 18 }}>
+            {finished.map((i) => (
+              <li key={i.id}>{i.text}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       <section className="panel">
         <h2>Why this is not a to-do list</h2>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Masthead } from '@/components/Masthead';
 import { WorkspaceProvider } from '@/components/WorkspaceProvider';
+import { Toaster } from '@/components/Toaster';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -32,10 +33,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <WorkspaceProvider>
-          <Masthead />
-          <main className="shell">{children}</main>
-        </WorkspaceProvider>
+        <Toaster>
+          <WorkspaceProvider>
+            <Masthead />
+            <main className="shell" id="main">{children}</main>
+          </WorkspaceProvider>
+        </Toaster>
       </body>
     </html>
   );

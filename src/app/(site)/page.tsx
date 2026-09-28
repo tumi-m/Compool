@@ -9,6 +9,7 @@ import { BasinSkeleton, PanelSkeleton, LoadingRegion } from '@/components/Skelet
 import { Stack } from '@/components/Stack';
 import { Tide } from '@/components/Tide';
 import { ME, useWorkspace } from '@/components/WorkspaceProvider';
+import { useToast } from '@/components/Toaster';
 import { TIER_COPY, pickRung, type Tier } from '@/lib/ladder/rungs';
 import { Ladder } from '@/components/Ladder';
 import { Flow, type StageId } from '@/components/motion/Flow';
@@ -31,6 +32,22 @@ export default function PoolPage() {
   const [busy, setBusy] = useState(false);
 
   const live = ws.sources.filter((s) => s.status !== 'revoked');
+  const { toast } = useToast();
+  // One click, per §10.4 — and deliberately no Undo. In production revoke
+  // deletes the ciphertext; offering an undo here would teach people that it
+  // can be taken back, and it cannot.
+  const revoke = (id: string) => {
+    const s = ws.sources.find((x) => x.id === id);
+    const wasRunning = streamingSourceIds.has(id);
+    revokeSource(id);
+    toast(
+      `Revoked ${s?.label ?? 'the source'}.` +
+        (wasRunning ? ' Its running work was stopped and what it drew was metered.' : '') +
+        ' Connect it again to use it.',
+      { tone: 'warn', ms: 7000 },
+    );
+  };
+
   const pos = useMemo(
     () => positionsWithCarried(ws.ledger, ws.users.map((u) => u.id), ws.carried),
     [ws.ledger, ws.users, ws.carried],
@@ -254,7 +271,7 @@ export default function PoolPage() {
             headroom={ws.headroom}
             now={now}
             streaming={streamingSourceIds}
-            onRevoke={revokeSource}
+            onRevoke={revoke}
           />
         </div>
       </section>

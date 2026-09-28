@@ -88,9 +88,15 @@ export function SupportWidget({
       ) : null}
 
       {sent ? (
-        <div className="notice" style={{ marginTop: 12 }}>
-          <strong>Thank you.</strong> Your gift is on the wall.{' '}
-          {payLink ? 'Finish up on the payment page that just opened.' : null}
+        <div className="notice" style={{ marginTop: 12 }} role="status">
+          <strong>Thank you.</strong>{' '}
+          {/* It used to say "your gift is on the wall" — but a cash pledge waits
+              for the creator to confirm it, and does not appear until they do.
+              Unconfirmed pledges stay off the public wall on purpose: otherwise
+              anyone could put any name and message on somebody else's page. */}
+          {payLink
+            ? `Finish up on the payment page that just opened. Your name goes on the wall once ${displayName.split(' ')[0]} confirms it.`
+            : `Your pledge is with ${displayName.split(' ')[0]}. It goes on the wall once they confirm it.`}
         </div>
       ) : (
         <>

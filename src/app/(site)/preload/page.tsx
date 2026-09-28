@@ -17,6 +17,7 @@ import {
 } from '@/lib/preload/schedule';
 import { clockAt, duration, pct, tokens, usd } from '@/lib/format';
 import { TideClock } from '@/components/motion/TideClock';
+import { useToast } from '@/components/Toaster';
 import { PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
 
 const KIND_COPY: Record<PreloadKind, string> = {
@@ -28,7 +29,8 @@ const KIND_COPY: Record<PreloadKind, string> = {
 const TZ = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
 
 export default function PreloadPage() {
-  const { ws, hydrated, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update, reworkQueue, runRework } = useWorkspace();
+  const { ws, hydrated, now, candidates, budgetRemainingUsd, upsertPreload, removePreload, startRun, update, reworkQueue, runRework, lastRefusal } = useWorkspace();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
   const ctx = useMemo(
@@ -60,12 +62,34 @@ export default function PreloadPage() {
       model: item.model,
       preloadItemId: item.id,
     });
+    const reason = id ? null : (lastRefusal() ?? (d?.hold ? HOLD_COPY[d.hold] : 'No source took it.'));
     upsertPreload({
       ...item,
       state: id ? 'done' : 'failed',
       lastRunAt: new Date(now).toISOString(),
-      lastSkipReason: id ? null : (d?.hold ? HOLD_COPY[d.hold] : 'No source took it.'),
+      lastSkipReason: reason,
       lastCostUsd: d?.estCostUsd ?? null,
+    });
+    toast(id ? `Dispatched “${item.title}”. It is on the pool page as it runs.` : `“${item.title}” did not dispatch. ${reason}`, {
+      tone: id ? 'good' : 'warn',
+      ms: id ? 5000 : 9000,
+    });
+  };
+
+  const remove = (item: PreloadItem) => {
+    const index = ws.preload.findIndex((p) => p.id === item.id);
+    removePreload(item.id);
+    toast(`Removed “${item.title}” from the queue.`, {
+      action: {
+        label: 'Undo',
+        run: () =>
+          update((w) => {
+            if (w.preload.some((p) => p.id === item.id)) return w;
+            const preload = [...w.preload];
+            preload.splice(Math.min(index, preload.length), 0, item);
+            return { ...w, preload };
+          }),
+      },
     });
   };
 
@@ -193,7 +217,15 @@ export default function PreloadPage() {
         </section>
       ) : null}
 
-      {open ? <NewItem onAdd={(i) => { upsertPreload(i); setOpen(false); }} /> : null}
+      {open ? (
+        <NewItem
+          onAdd={(i) => {
+            upsertPreload(i);
+            setOpen(false);
+            toast(`Queued “${i.title}” for ${String(i.anchorHour).padStart(2, '0')}:00.`, { tone: 'good' });
+          }}
+        />
+      ) : null}
 
       <section>
         <h2>The queue</h2>
@@ -272,7 +304,7 @@ export default function PreloadPage() {
                             {item.enabled ? 'Pause' : 'Resume'}
                           </button>
                           <button type="button" className="tiny" onClick={() => runNow(item)}>Run now</button>
-                          <button type="button" className="tiny danger" onClick={() => removePreload(item.id)}>×</button>
+                          <button type="button" className="tiny danger" onClick={() => remove(item)} aria-label={`Remove ${item.title}`}>×</button>
                         </div>
                       </td>
                     </tr>

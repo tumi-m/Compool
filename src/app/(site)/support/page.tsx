@@ -8,7 +8,8 @@ import {
   DEFAULT_EMBED, embedSize, embedSnippet, isValidHandle, linkSnippet, normaliseHandle,
   type EmbedOptions, type EmbedVariant,
 } from '@/lib/support/embed';
-import { giftableSources, totals } from '@/lib/support/pledge';
+import { giftableSources, totals, type Pledge } from '@/lib/support/pledge';
+import { useToast } from '@/components/Toaster';
 import { describeTokens, UNITS } from '@/lib/support/units';
 import { tokens as fmtTokens } from '@/lib/format';
 
@@ -25,6 +26,33 @@ export default function SupportPage() {
   const handleOk = isValidHandle(p.handle);
 
   const set = (patch: Partial<typeof p>) => update((w) => ({ ...w, support: { ...w.support, ...patch } }));
+  const { toast } = useToast();
+  const pending = p.pledges.filter((x) => x.state === 'pending');
+
+  // The page showed "awaiting payment" with no way to act on it. Confirming is
+  // the step that turns a promise into capacity, so it belongs here.
+  const decide = (pledge: Pledge, state: 'active' | 'declined') => {
+    update((w) => ({
+      ...w,
+      support: { ...w.support, pledges: w.support.pledges.map((x) => (x.id === pledge.id ? { ...x, state } : x)) },
+    }));
+    toast(
+      state === 'active'
+        ? `Confirmed ${pledge.supporterName}’s gift. It is on your wall and in your basin.`
+        : `Declined ${pledge.supporterName}’s pledge.`,
+      {
+        tone: state === 'active' ? 'good' : 'info',
+        action: {
+          label: 'Undo',
+          run: () =>
+            update((w) => ({
+              ...w,
+              support: { ...w.support, pledges: w.support.pledges.map((x) => (x.id === pledge.id ? { ...x, state: 'pending' } : x)) },
+            })),
+        },
+      },
+    );
+  };
 
   const copy = async (text: string, key: string) => {
     try {
@@ -164,6 +192,33 @@ export default function SupportPage() {
             <div className="hint">a promise is not capacity</div>
           </div>
         </div>
+
+        {pending.length > 0 ? (
+          <section className="panel">
+            <div className="spread">
+              <h2>Waiting for you</h2>
+              <span className="badge shallow">{pending.length} pending</span>
+            </div>
+            <p className="hint" style={{ marginTop: 4 }}>
+              Cash pledges go on your public wall only once you confirm the money arrived. Until then they count
+              for nothing, and nobody else can see them.
+            </p>
+            {pending.map((x) => (
+              <div className="runRow" key={x.id}>
+                <div>
+                  <div className="runTitle">
+                    {x.supporterName} · {describeTokens(x.tokens)}
+                  </div>
+                  {x.message ? <div className="hint">“{x.message}”</div> : null}
+                </div>
+                <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                  <button type="button" className="tiny primary" onClick={() => decide(x, 'active')}>Confirm</button>
+                  <button type="button" className="tiny" onClick={() => decide(x, 'declined')}>Decline</button>
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         <section className="panel">
           <h2>Giving capacity instead of cash</h2>

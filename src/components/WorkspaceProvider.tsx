@@ -19,7 +19,7 @@ import { admit, burnUsdPerHour, periodEnd, spendInPeriod } from '@/lib/meter/bud
 import type { Candidate, CapacitySource, Run, Usage, UsageEvent, WorkKind } from '@/lib/types';
 import type { PreloadItem } from '@/lib/preload/schedule';
 import { pickRung, promotionAvailable, tierRank, type LadderContext, type Tier } from '@/lib/ladder/rungs';
-import type { Idea } from '@/lib/orchestrate/triage';
+import { reconcileIdeas, type Idea } from '@/lib/orchestrate/triage';
 
 const KEY = 'tidepool.workspace.v1';
 
@@ -53,6 +53,9 @@ interface Ctx {
     targetTier?: Tier;
     reworkOfRunId?: string;
   }) => string | null;
+  /** Why the most recent startRun() returned null, for a caller that wants to
+   *  tell the person rather than pointing them at another page. */
+  lastRefusal: () => string | null;
   ladderCtx: LadderContext;
   reworkQueue: Run[];
   runRework: (run: Run) => void;
@@ -115,6 +118,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [hydrated]);
 
   const update = useCallback((fn: (w: Workspace) => Workspace) => setWs((w) => fn(w)), []);
+
+  // An idea's status follows its run wherever the run ends — the engine, an
+  // abort, a reset — rather than depending on the orchestrate page being open.
+  useEffect(() => {
+    if (!hydrated) return;
+    setWs((w) => {
+      const ideas = reconcileIdeas(w.ideas, w.runs);
+      return ideas === w.ideas ? w : { ...w, ideas };
+    });
+  }, [ws.runs, hydrated]);
 
   const candidates = useMemo<Candidate[]>(
     () =>
@@ -195,6 +208,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return t;
   };
 
+  const refusal = useRef<string | null>(null);
+
   const cancelAll = () => {
     for (const f of inflight.current.values()) f.timers.forEach((t) => window.clearTimeout(t));
     inflight.current.clear();
@@ -271,6 +286,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       });
 
       const fail = (reason: string) => {
+        refusal.current = reason;
         update((w) => ({
           ...w,
           runs: [
@@ -347,6 +363,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (sel.kind === 'no_capacity') return fail(rung.kind === 'stalled' ? rung.reason : sel.reason);
+      refusal.current = null;
 
       // ---- reserve (§6.3) ------------------------------------------------------
       const source = sel.source;
@@ -431,6 +448,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const value: Ctx = {
     ws, hydrated, now, candidates, streamingSourceIds: streaming, spentTodayUsd, budgetRemainingUsd,
     burnUsdPerHour: burn, budgetResetsAt, update, startRun,
+    lastRefusal: () => refusal.current,
     ladderCtx,
     reworkQueue,
     runRework: (run) => {

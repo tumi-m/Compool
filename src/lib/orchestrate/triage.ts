@@ -31,6 +31,60 @@ export interface Idea {
   /** Set once triaged. */
   tier?: Tier;
   estimatedTokens?: number;
+  /** The run dispatched for it. Status follows the run, so an idea cannot
+   *  sit at "running" forever after its run has finished. */
+  runId?: string;
+}
+
+/** Same idea typed twice is one idea. */
+export function ideaKey(text: string): string {
+  return text.trim().toLowerCase().replace(/[\s\p{P}]+/gu, ' ').trim();
+}
+
+/**
+ * Split a pasted burst into ideas: one per line, list markers stripped, blanks
+ * and anything already captured skipped.
+ */
+export function parseDump(dump: string, existing: Idea[]): { fresh: string[]; duplicates: number } {
+  const seen = new Set(existing.filter((i) => i.status !== 'done').map((i) => ideaKey(i.text)));
+  const fresh: string[] = [];
+  let duplicates = 0;
+  for (const raw of dump.split('\n')) {
+    const text = raw.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim();
+    if (!text) continue;
+    const k = ideaKey(text);
+    if (!k) continue;
+    if (seen.has(k)) {
+      duplicates += 1;
+      continue;
+    }
+    seen.add(k);
+    fresh.push(text);
+  }
+  return { fresh, duplicates };
+}
+
+/**
+ * Status that follows the run. Done when its run is done; back to planned —
+ * retryable, and not silently lost — when its run failed or no longer exists.
+ */
+export function reconcileIdeas<R extends { id: string; state: string }>(ideas: Idea[], runs: R[]): Idea[] {
+  const byId = new Map(runs.map((r) => [r.id, r]));
+  let changed = false;
+  const next = ideas.map((i) => {
+    if (i.status !== 'running' || !i.runId) return i;
+    const run = byId.get(i.runId);
+    if (run?.state === 'done') {
+      changed = true;
+      return { ...i, status: 'done' as const };
+    }
+    if (!run || run.state === 'failed' || run.state === 'cancelled') {
+      changed = true;
+      return { ...i, status: 'planned' as const, runId: undefined };
+    }
+    return i;
+  });
+  return changed ? next : ideas;
 }
 
 export interface PlannedTask {
