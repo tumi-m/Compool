@@ -83,7 +83,7 @@ export default function ModelsPage() {
             </select>
           </div>
           <label className="row small" style={{ gap: 6, margin: 0, fontWeight: 500 }}>
-            <input type="checkbox" checked={openOnly} onChange={(e) => setOpenOnly(e.target.checked)} style={{ width: 16, height: 16, minHeight: 0 }} />
+            <input type="checkbox" checked={openOnly} onChange={(e) => setOpenOnly(e.target.checked)} className="check" />
             Open weights only
           </label>
           <span className="badge water" style={{ marginLeft: 'auto' }}>

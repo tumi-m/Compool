@@ -113,6 +113,9 @@ export function Flow({
           const done = idx > i;
           const failed = i === failIdx;
           const colour = failed ? 'var(--coral)' : isNow ? 'var(--water)' : done ? 'var(--done)' : 'var(--ink-2)';
+          // Dots are graphics (3:1); labels are text (4.5:1) and take the ink
+          // variant of the same hue.
+          const ink = failed ? 'var(--coral-ink)' : isNow ? 'var(--link)' : done ? 'var(--done)' : 'var(--ink-2)';
           return (
             <g key={s.id}>
               {s.effect ? (
@@ -129,7 +132,7 @@ export function Flow({
                 stroke={colour}
                 strokeWidth={1.5}
               />
-              <text x={x(i)} y={Y - 22} textAnchor="middle" className="flowLabel" fill={colour}>
+              <text x={x(i)} y={Y - 22} textAnchor="middle" className="flowLabel" fill={ink}>
                 {s.label}
               </text>
               <text x={x(i)} y={Y + 28} textAnchor="middle" className="flowSub">

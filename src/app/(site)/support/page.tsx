@@ -53,7 +53,7 @@ export default function SupportPage() {
             type="checkbox"
             checked={p.enabled}
             onChange={(e) => set({ enabled: e.target.checked })}
-            style={{ width: 18, height: 18, minHeight: 0 }}
+            className="check"
           />
           <span style={{ fontWeight: 600, color: 'var(--ink-0)' }}>Page is {p.enabled ? 'live' : 'off'}</span>
         </label>
@@ -80,7 +80,7 @@ export default function SupportPage() {
               />
             </div>
             {!handleOk ? (
-              <div className="hint" style={{ color: 'var(--coral)', marginTop: 4 }}>
+              <div className="hint" style={{ color: 'var(--coral-ink)', marginTop: 4 }}>
                 Letters, numbers and single hyphens, 1–32 characters.
               </div>
             ) : null}
@@ -243,7 +243,7 @@ export default function SupportPage() {
                   type="checkbox"
                   checked={opts.showGoal}
                   onChange={(e) => setOpts({ ...opts, showGoal: e.target.checked })}
-                  style={{ width: 15, height: 15, minHeight: 0 }}
+                  className="check"
                 />
                 goal
               </label>
@@ -252,7 +252,7 @@ export default function SupportPage() {
                   type="checkbox"
                   checked={opts.showSupporters}
                   onChange={(e) => setOpts({ ...opts, showSupporters: e.target.checked })}
-                  style={{ width: 15, height: 15, minHeight: 0 }}
+                  className="check"
                 />
                 supporters
               </label>

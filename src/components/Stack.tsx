@@ -53,7 +53,7 @@ export function Stack({ positions, users }: { positions: Position[]; users: User
               </td>
               <td className="n">{usd(p.contributedUsd)}</td>
               <td className="n">{usd(p.consumedUsd)}</td>
-              <td className="n" style={{ color: p.netUsd < -0.005 ? 'var(--coral)' : undefined }}>
+              <td className="n" style={{ color: p.netUsd < -0.005 ? 'var(--coral-ink)' : undefined }}>
                 {p.netUsd >= 0 ? '+' : ''}{usd(p.netUsd)}
               </td>
             </tr>

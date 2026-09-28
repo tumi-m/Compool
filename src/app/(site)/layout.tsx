@@ -4,18 +4,11 @@ import { WorkspaceProvider } from '@/components/WorkspaceProvider';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'TIDEPOOL — pooled AI capacity',
+  // Every route used to share one title, so a screen reader announced the same
+  // words on every navigation and eleven open tabs were indistinguishable.
+  title: { default: 'TIDEPOOL — pooled AI capacity', template: '%s · TIDEPOOL' },
   description:
     'Every source of AI capacity you own, in one place, with the level visible. Route around the stall, meter it honestly, and spend the quiet hours.',
-  icons: {
-    icon: [
-      {
-        url:
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%230e8c99' d='M2 12H54V24Q28 21.1 2 24Z'/%3E%3Cpath fill='%230e8c99' d='M2 30H40V42Q21 39.1 2 42Z'/%3E%3Cpath fill='%230e8c99' d='M2 48H26V60Q14 57.1 2 60Z'/%3E%3C/svg%3E",
-        type: 'image/svg+xml',
-      },
-    ],
-  },
 };
 
 export const viewport: Viewport = { themeColor: '#0a5a66' };

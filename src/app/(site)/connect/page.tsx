@@ -231,7 +231,7 @@ export default function ConnectPage() {
                       type="checkbox"
                       checked={contribute}
                       onChange={(e) => setContribute(e.target.checked)}
-                      style={{ width: 18, height: 18, minHeight: 0 }}
+                      className="check"
                     />
                     <span className="hint" style={{ margin: 0, flex: 1 }}>
                       Members submit work; they never obtain the credential. Every use is written to the audit

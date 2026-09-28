@@ -119,7 +119,7 @@ export function SupportWidget({
               id={`count-${handle}`}
               value={count}
               onChange={(e) => setCount(Number(e.target.value))}
-              style={{ width: 74, minHeight: 34 }}
+              className="countSelect"
             >
               {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>×{n}</option>)}
             </select>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { register, freshness } from '@/lib/policy/register';
 
-export const metadata = { title: 'Docs — TIDEPOOL' };
+export const metadata = { title: 'Docs' };
 
 /**
  * §14.3: docs are a product surface, sharing the app's chrome. An open-source

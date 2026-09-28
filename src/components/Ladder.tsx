@@ -69,7 +69,7 @@ export function Ladder({
         );
       })}
       {currentRank > tierRank(target) ? (
-        <div className="row small" style={{ gap: 6, color: 'var(--shallow)' }}>
+        <div className="row small" style={{ gap: 6, color: 'var(--shallow-ink)' }}>
           <span className="ladderDrop" aria-hidden="true">↓</span>
           <span>
             Running {currentRank - tierRank(target)} rung

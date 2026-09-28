@@ -7,14 +7,25 @@
   --line: #ded7c8;
   --ink-0: #12222a;
   --ink-1: #4b5d66;
-  --ink-2: #7e8b90;
+  --ink-2: #616c70; /* solved: 4.5:1 on paper, panel and foam (was 2.93 on foam) */
 
   --water: #0e8c99;
   --water-deep: #0a5a66;
   --foam: #d9efef;
-  --shallow: #e0a008;
+  --shallow: #b98407; /* fill, solved for 3:1 against the page (was 2.08) */
   --coral: #d6452e;
   --chip: #c8541f;
+
+  /* Text-on-ground variants. The fills above are for bars, basins and dots,
+     which need 3:1; text needs 4.5:1, and using one token for both is how
+     amber labels ended up at 1.9:1. Every value here was solved against every
+     ground it sits on, not picked by eye. */
+  --link: #0c747f;
+  --shallow-ink: #8b6305;
+  --coral-ink: #c03b26;
+  --chip-ink: #b14a1b;
+  --accent-fill: #0c7f8b;
+  --on-accent: #ffffff;
 
   --on-deep: #eef7f6;
   --stripe: rgba(18, 34, 42, 0.03);
@@ -37,7 +48,7 @@
   --line: #17383f;
   --ink-0: #e9f3f2;
   --ink-1: #9eb5b8;
-  --ink-2: #6b8288;
+  --ink-2: #84999e; /* solved: 4.5:1 on paper, panel and foam (was 3.32) */
 
   --water: #32c9bc;
   --water-deep: #0e3b44;
@@ -45,6 +56,13 @@
   --shallow: #f0be3c;
   --coral: #ff7c66;
   --chip: #e8834f;
+
+  --link: #32c9bc;
+  --shallow-ink: #f0be3c;
+  --coral-ink: #ff7c66;
+  --chip-ink: #e8834f;
+  --accent-fill: #32c9bc;
+  --on-accent: #04222a;
 
   --on-deep: #e9f3f2;
   --stripe: rgba(233, 243, 242, 0.04);
@@ -84,7 +102,7 @@ h1 { font-family: var(--display); font-size: 31px; font-weight: 700; letter-spac
 h2 { font-size: 20px; }
 h3 { font-size: 16px; }
 p { margin: 0 0 12px; max-width: 68ch; }
-a { color: var(--water); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 
 :focus-visible {
   outline: 2px solid var(--water);
@@ -150,8 +168,7 @@ a { color: var(--water); text-decoration-thickness: 1px; text-underline-offset: 
   white-space: nowrap;
 }
 .nav a:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
-.nav a[aria-current='page'] { opacity: 1; background: var(--water); color: #04222a; }
-:root[data-theme='dark'] .nav a[aria-current='page'] { color: #04222a; }
+.nav a[aria-current='page'] { opacity: 1; background: var(--accent-fill); color: var(--on-accent); }
 
 /* ---- responsive navigation --------------------------------------------- */
 
@@ -347,14 +364,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* .btn is applied to links as well as buttons, so every modifier is written
    element-agnostically — `button.primary` silently does nothing on an anchor. */
 .primary {
-  background: var(--water);
-  border-color: var(--water);
-  color: #04222a;
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--on-accent);
   font-weight: 600;
 }
 .primary:hover:not(:disabled) { background: var(--water-deep); border-color: var(--water-deep); color: var(--on-deep); }
 .ghost { background: transparent; }
-.danger { color: var(--coral); border-color: var(--line); }
+.danger { color: var(--coral-ink); border-color: var(--line); }
 .danger:hover:not(:disabled) { border-color: var(--coral); background: transparent; }
 .tiny { min-height: 28px; padding: 4px 9px; font-size: 12px; }
 a.btn { display: inline-flex; align-items: center; text-decoration: none; }
@@ -389,10 +406,9 @@ fieldset { border: 0; margin: 0; padding: 0; }
   color: var(--ink-1);
   white-space: nowrap;
 }
-.badge.water { color: var(--water-deep); border-color: var(--water); background: var(--foam); }
-:root[data-theme='dark'] .badge.water { color: var(--water); }
-.badge.shallow { color: var(--shallow); border-color: var(--shallow); }
-.badge.coral { color: var(--coral); border-color: var(--coral); }
+.badge.water { color: var(--link); border-color: var(--water); background: var(--foam); }
+.badge.shallow { color: var(--shallow-ink); border-color: var(--shallow); }
+.badge.coral { color: var(--coral-ink); border-color: var(--coral); }
 .badge.classA { border-left: 3px solid var(--water); }
 .badge.classB { border-left: 3px solid var(--chip); }
 .badge.classC { border-left: 3px solid var(--ink-2); }
@@ -833,11 +849,10 @@ fieldset { border: 0; margin: 0; padding: 0; }
   color: var(--ink-1);
   white-space: nowrap;
 }
-.eventKind[data-k^='text'] { border-color: var(--water); color: var(--water-deep); }
-.eventKind[data-k^='cost'] { border-color: var(--chip); color: var(--chip); }
+.eventKind[data-k^='text'] { border-color: var(--water); color: var(--link); }
+.eventKind[data-k^='cost'] { border-color: var(--chip); color: var(--chip-ink); }
 .eventKind[data-k^='run'] { border-color: var(--water-deep); }
 .eventKind[data-k^='task'] { border-color: var(--ink-2); }
-:root[data-theme='dark'] .eventKind[data-k^='text'] { color: var(--water); }
 
 .caret {
   display: inline-block;
@@ -1075,7 +1090,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
   background: var(--foam);
 }
 .unitName { font-weight: 600; }
-.unitBuys { color: var(--ink-2); font-size: 11.5px; }
+.unitBuys { color: var(--ink-1); font-size: 11.5px; }
 .unitCost { color: var(--ink-1); font-size: 12px; }
 
 .wallRow {
@@ -1172,7 +1187,7 @@ body.embedBody .supportWidget { height: 100vh; overflow-y: auto; box-sizing: bor
   font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--chip);
+  color: var(--chip-ink);
   border: 1px solid currentColor;
   border-radius: 3px;
   padding: 1px 5px;
@@ -1205,10 +1220,20 @@ body.embedBody .supportWidget { height: 100vh; overflow-y: auto; box-sizing: bor
 
 /* ---- touch: targets big enough to hit with a thumb (§14.9) --------------- */
 
+/* Sizing lives in classes, not inline styles: an inline min-height beats this
+   media query, which is how two dozen 28px controls survived the first pass. */
+.check { width: 16px; height: 16px; min-height: 0; flex: none; margin: 0; }
+.cellSelect { width: 58px; min-height: 30px; padding: 2px 4px; }
+.countSelect { width: 74px; min-height: 34px; }
+label.row:has(.check) { cursor: pointer; }
+
 @media (pointer: coarse) {
   button, .btn, select, input[type='text'], input[type='number'], input[type='password'] { min-height: 44px; }
-  .tiny { min-height: 40px; padding: 6px 12px; }
-  input[type='checkbox'] { width: 22px !important; height: 22px !important; }
+  .tiny { min-height: 40px; min-width: 40px; padding: 6px 12px; }
+  .check { width: 22px; height: 22px; }
+  label.row:has(.check) { min-height: 44px; }
+  .cellSelect { min-height: 44px; width: 64px; }
+  .countSelect { min-height: 44px; }
   .unitPick { min-height: 48px; }
 }
 

@@ -208,7 +208,7 @@ export default function OrchestratePage() {
                             id={`${k}-${idea.id}`}
                             value={idea[k]}
                             onChange={(e) => upsertIdea({ ...idea, [k]: Number(e.target.value) })}
-                            style={{ width: 54, minHeight: 28, padding: '2px 4px' }}
+                            className="cellSelect"
                           >
                             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                           </select>
