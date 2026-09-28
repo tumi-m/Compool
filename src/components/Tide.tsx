@@ -18,6 +18,7 @@ export function Tide({
   windowStart,
   windowHours,
   nowHour,
+  periodLabel = 'today',
 }: {
   spentUsd: number;
   budgetUsd: number | null;
@@ -27,6 +28,8 @@ export function Tide({
   windowStart: number;
   windowHours: number;
   nowHour: number;
+  /** "today", "this week", … — the budget's own period, not "this session". */
+  periodLabel?: string;
 }) {
   const max = Math.max(1, ...hourly);
   const inWindow = (h: number) => {
@@ -39,7 +42,7 @@ export function Tide({
     <div className="panel stackv">
       <div className="spread">
         <div>
-          <div className="sectionLabel">Spent this session</div>
+          <div className="sectionLabel">Spent {periodLabel}</div>
           <div className="bigNum">
             <Odometer value={spentUsd} decimals={2} prefix="$" ariaLabel={`Spent ${usd(spentUsd)}`} />
             {budgetUsd !== null ? <span className="unit">of {usd(budgetUsd)}</span> : null}

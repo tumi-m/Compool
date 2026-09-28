@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { costUsd, priceBook } from '@/lib/meter/price-book';
-import { entriesFor, findImbalances, positions, settle } from '@/lib/meter/ledger';
+import { compact, entriesFor, findImbalances, positions, positionsWithCarried, settle } from '@/lib/meter/ledger';
 import type { LedgerEntry, UsageEvent } from '@/lib/types';
 
 const event = (over: Partial<UsageEvent> = {}): UsageEvent => ({
@@ -104,5 +104,79 @@ describe('settlement', () => {
   it('proposes nothing when everyone is square', () => {
     const entries = entriesFor(event({ contributorUserId: 'user_a' }), (s) => `ue_1_${s}`);
     expect(settle(positions(entries, ['user_a']))).toEqual([]);
+  });
+});
+
+describe('compaction', () => {
+  const mk = (i: number, consumer: string, contributor: string, cost: number) =>
+    event({
+      id: `ue_${i}`, consumerUserId: consumer, contributorUserId: contributor, costUsd: cost,
+      createdAt: new Date(Date.UTC(2026, 8, 1, 0, i)).toISOString(),
+    });
+
+  const build = (n: number) => {
+    const usage = Array.from({ length: n }, (_, i) =>
+      mk(i, ['user_a', 'user_b', 'user_c'][i % 3], ['user_b', 'user_c', 'user_a'][i % 3], 0.1 + (i % 7) * 0.05),
+    );
+    const ledger = usage.flatMap((u) => entriesFor(u, (s) => `${u.id}_${s}`));
+    return { usage, ledger };
+  };
+  const users = ['user_a', 'user_b', 'user_c'];
+
+  it('leaves a small ledger alone', () => {
+    const { usage, ledger } = build(10);
+    const r = compact(usage, ledger, {}, 50);
+    expect(r.usage).toBe(usage);
+    expect(r.ledger).toBe(ledger);
+  });
+
+  it('keeps the newest events and drops the oldest', () => {
+    const { usage, ledger } = build(40);
+    const r = compact(usage, ledger, {}, 10);
+    expect(r.usage).toHaveLength(10);
+    expect(r.usage.map((u) => u.id).sort()).toEqual(
+      Array.from({ length: 10 }, (_, i) => `ue_${30 + i}`).sort(),
+    );
+  });
+
+  it('never changes anybody’s balance', () => {
+    const { usage, ledger } = build(97);
+    const before = positions(ledger, users);
+    const r = compact(usage, ledger, {}, 13);
+    const after = positionsWithCarried(r.ledger, users, r.carried);
+    for (const u of users) {
+      const b = before.find((p) => p.userId === u)!;
+      const a = after.find((p) => p.userId === u)!;
+      expect(a.contributedUsd).toBeCloseTo(b.contributedUsd, 9);
+      expect(a.consumedUsd).toBeCloseTo(b.consumedUsd, 9);
+      expect(a.netUsd).toBeCloseTo(b.netUsd, 9);
+    }
+  });
+
+  it('keeps the invariant on what it keeps: two entries per event, summing to zero', () => {
+    const { usage, ledger } = build(50);
+    const r = compact(usage, ledger, {}, 7);
+    expect(r.ledger).toHaveLength(14);
+    expect(findImbalances(r.ledger)).toEqual([]);
+  });
+
+  it('matches entries to events by id, not by position', () => {
+    const { usage, ledger } = build(30);
+    // Shuffle the ledger: a positional slice would now split pairs.
+    const shuffled = [...ledger].sort((a, b) => (a.id < b.id ? 1 : -1)).reverse().sort(() => 0);
+    const r = compact(usage, [...shuffled].reverse(), {}, 5);
+    expect(findImbalances(r.ledger)).toEqual([]);
+    expect(new Set(r.ledger.map((e) => e.usageEventId))).toEqual(new Set(r.usage.map((u) => u.id)));
+  });
+
+  it('accumulates across repeated compactions', () => {
+    const { usage, ledger } = build(60);
+    const once = compact(usage, ledger, {}, 30);
+    const twice = compact(once.usage, once.ledger, once.carried, 10);
+    const before = positions(ledger, users);
+    const after = positionsWithCarried(twice.ledger, users, twice.carried);
+    for (const u of users) {
+      expect(after.find((p) => p.userId === u)!.netUsd).toBeCloseTo(before.find((p) => p.userId === u)!.netUsd, 9);
+    }
   });
 });

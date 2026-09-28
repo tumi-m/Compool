@@ -101,3 +101,69 @@ export function settle(pos: Position[]): Transfer[] {
   }
   return out;
 }
+
+// ---- compaction -----------------------------------------------------------
+
+export interface Carried {
+  contributedUsd: number;
+  consumedUsd: number;
+}
+
+/**
+ * Keep the stored ledger bounded without changing anybody's balance.
+ *
+ * The first version sliced usage events at 300 and ledger entries at 600,
+ * independently and by position. It happened to keep pairs together only
+ * because pairs were adjacent — and every entry that fell off the end silently
+ * changed somebody's position in the Stack, so a settlement computed on Friday
+ * disagreed with the one computed on Monday. For the one part of the system
+ * the plan calls the product, that is not a storage detail.
+ *
+ * This drops whole usage events, oldest first, removes their entries by id
+ * rather than by position, and folds what they carried into a per-person
+ * balance brought forward. positions() over the kept entries plus the carried
+ * balance is exactly positions() over everything.
+ */
+export function compact(
+  usage: UsageEvent[],
+  ledger: LedgerEntry[],
+  carried: Record<string, Carried>,
+  keepEvents: number,
+): { usage: UsageEvent[]; ledger: LedgerEntry[]; carried: Record<string, Carried> } {
+  if (usage.length <= keepEvents) return { usage, ledger, carried };
+
+  const byAge = [...usage].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const keep = byAge.slice(0, keepEvents);
+  const keepIds = new Set(keep.map((u) => u.id));
+  const next: Record<string, Carried> = Object.fromEntries(
+    Object.entries(carried).map(([k, v]) => [k, { ...v }]),
+  );
+
+  const kept: LedgerEntry[] = [];
+  for (const e of ledger) {
+    if (keepIds.has(e.usageEventId)) {
+      kept.push(e);
+      continue;
+    }
+    const c = (next[e.userId] ??= { contributedUsd: 0, consumedUsd: 0 });
+    if (e.direction === 'credit') c.contributedUsd += e.amountUsd;
+    else c.consumedUsd += e.amountUsd;
+  }
+
+  return { usage: usage.filter((u) => keepIds.has(u.id)), ledger: kept, carried: next };
+}
+
+/** positions() including whatever compaction brought forward. */
+export function positionsWithCarried(
+  entries: LedgerEntry[],
+  userIds: string[],
+  carried: Record<string, Carried> = {},
+): Position[] {
+  return positions(entries, userIds).map((p) => {
+    const c = carried[p.userId];
+    if (!c) return p;
+    const contributedUsd = p.contributedUsd + c.contributedUsd;
+    const consumedUsd = p.consumedUsd + c.consumedUsd;
+    return { ...p, contributedUsd, consumedUsd, netUsd: contributedUsd - consumedUsd };
+  });
+}

@@ -258,6 +258,9 @@ export interface Run {
   needsRework?: boolean;
   /** Set on the repair run, pointing at the run it is rewriting. */
   reworkOfRunId?: string;
+  /** What admit() had to say about it — e.g. that it ran on owned compute
+   *  because the budget was spent. */
+  notice?: string;
 }
 
 export interface NodeRecord {

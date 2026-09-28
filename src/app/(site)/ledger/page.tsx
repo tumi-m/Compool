@@ -3,13 +3,16 @@
 import { useMemo } from 'react';
 import { useWorkspace } from '@/components/WorkspaceProvider';
 import { Stack } from '@/components/Stack';
-import { findImbalances, positions, settle } from '@/lib/meter/ledger';
+import { findImbalances, positionsWithCarried, settle } from '@/lib/meter/ledger';
 import { priceBook } from '@/lib/meter/price-book';
 import { relative, usd } from '@/lib/format';
 
 export default function LedgerPage() {
   const { ws, now } = useWorkspace();
-  const pos = useMemo(() => positions(ws.ledger, ws.users.map((u) => u.id)), [ws.ledger, ws.users]);
+  const pos = useMemo(
+    () => positionsWithCarried(ws.ledger, ws.users.map((u) => u.id), ws.carried),
+    [ws.ledger, ws.users, ws.carried],
+  );
   const transfers = useMemo(() => settle(pos), [pos]);
   const imbalances = useMemo(() => findImbalances(ws.ledger), [ws.ledger]);
   const name = (id: string) => ws.users.find((u) => u.id === id)?.displayName ?? id;

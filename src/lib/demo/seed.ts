@@ -48,6 +48,9 @@ export interface Workspace {
   rungs: Rung[];
   ideas: Idea[];
   support: SupportProfile;
+  /** Balances brought forward by ledger compaction. Optional so workspaces
+   *  saved before it existed still load. */
+  carried?: Record<string, { contributedUsd: number; consumedUsd: number }>;
   /** 24 hourly buckets of tokens spent, local time. Feeds the trough finder. */
   hourlyLoad: number[];
   preset: string;

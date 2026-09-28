@@ -641,6 +641,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+.odoDigit, .odoSep, .odometer > [aria-hidden='true'] { user-select: none; }
 .odoDigit {
   display: inline-block;
   height: 1em;

@@ -15,26 +15,31 @@ import { Flow, type StageId } from '@/components/motion/Flow';
 import { CapacityField } from '@/components/motion/CapacityField';
 import { Odometer } from '@/components/motion/Odometer';
 import { poolReplenishRate } from '@/lib/router/replenish';
-import { positions } from '@/lib/meter/ledger';
+import { positionsWithCarried } from '@/lib/meter/ledger';
 import { PRESETS, type PresetName } from '@/lib/router/select';
 import { fillFraction } from '@/lib/router/headroom';
 import { findTrough } from '@/lib/preload/schedule';
 import { localParts } from '@/lib/preload/schedule';
-import { duration, relative, tokens as fmtTokens, usd } from '@/lib/format';
+import { clockAt, duration, relative, tokens as fmtTokens, usd } from '@/lib/format';
 
 export default function PoolPage() {
   const {
-    ws, hydrated, now, candidates, spentTodayUsd, budgetRemainingUsd, streamingSourceIds,
+    ws, hydrated, now, candidates, spentTodayUsd, budgetRemainingUsd, streamingSourceIds, burnUsdPerHour: burn,
+    budgetResetsAt,
     startRun, revokeSource, setPreset, reseed, saturate, reworkQueue, runRework,
   } = useWorkspace();
   const [busy, setBusy] = useState(false);
 
   const live = ws.sources.filter((s) => s.status !== 'revoked');
-  const pos = useMemo(() => positions(ws.ledger, ws.users.map((u) => u.id)), [ws.ledger, ws.users]);
+  const pos = useMemo(
+    () => positionsWithCarried(ws.ledger, ws.users.map((u) => u.id), ws.carried),
+    [ws.ledger, ws.users, ws.carried],
+  );
 
   // Burn measured over the session so far, not asserted.
-  const elapsedH = Math.max(1 / 60, (now - Date.parse(ws.seededAt)) / 3_600_000);
-  const burn = spentTodayUsd / elapsedH;
+  // Burn is measured over the trailing hour by the provider; dividing by time
+  // since the workspace was seeded made it fall toward zero the longer the tab
+  // had existed.
   const emptyIn = budgetRemainingUsd === null || burn <= 0 ? null : (budgetRemainingUsd / burn) * 3_600_000;
 
   // The same quantities the field draws, stated as text beside it — a picture of
@@ -71,6 +76,7 @@ export default function PoolPage() {
   // Only the newest run can be "the last run": a failure buried under fifty
   // successes is history, and a banner about it contradicts the ladder above it.
   const lastFail = ws.runs[0]?.state === 'failed' ? ws.runs[0] : null;
+  const lastNotice = !lastFail && ws.runs[0]?.notice ? ws.runs[0] : null;
 
   const fire = (kind: 'interactive' | 'bulk') => {
     setBusy(true);
@@ -214,6 +220,7 @@ export default function PoolPage() {
 
       <Tide
         spentUsd={spentTodayUsd}
+        periodLabel={{ session: 'this session', day: 'today', week: 'this week', month: 'this month' }[ws.pool.budgetPeriod]}
         budgetUsd={ws.pool.budgetCapUsd}
         burnUsdPerHour={burn}
         emptyInMs={emptyIn}
@@ -222,6 +229,12 @@ export default function PoolPage() {
         windowHours={trough.windowHours}
         nowHour={nowHour}
       />
+
+      {lastNotice ? (
+        <div className="notice warn" role="status">
+          <strong>Heads up.</strong> {lastNotice.notice}
+        </div>
+      ) : null}
 
       {lastFail?.errorCode ? (
         <div className="notice warn">
@@ -334,6 +347,7 @@ export default function PoolPage() {
         <div className="row small muted">
           <span>
             budget left {budgetRemainingUsd === null ? 'uncapped' : usd(budgetRemainingUsd)} · empties in {duration(emptyIn)}
+            {budgetResetsAt ? <> · resets {clockAt(budgetResetsAt)}</> : null}
           </span>
           <span style={{ marginLeft: 'auto' }} className="row">
             <button type="button" className="tiny ghost" onClick={saturate}>

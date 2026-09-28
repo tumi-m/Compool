@@ -37,7 +37,14 @@ export function Odometer({
   }, [text]);
 
   return (
-    <span className={`odometer ${className}`} aria-label={ariaLabel ?? `${prefix}${text}${suffix}`} role="text">
+    // The value is real text in a visually hidden span; the rolling strips are
+    // presentation only. The first version put the value in aria-label on a
+    // span with role="text" — which is not an ARIA role, so the label could be
+    // ignored and the number read as nothing — and its textContent was every
+    // digit of every strip, so copy, find-in-page and search all got
+    // "$01234567890123456789.0123…".
+    <span className={`odometer ${className}`}>
+      <span className="srOnly">{ariaLabel ?? `${prefix}${text}${suffix}`}</span>
       {prefix ? <span aria-hidden="true">{prefix}</span> : null}
       {text.split('').map((ch, i) => (
         <Digit key={`${i}-${ch === '.' ? 'dot' : 'd'}`} ch={ch} direction={direction} />
