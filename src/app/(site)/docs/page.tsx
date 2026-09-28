@@ -141,6 +141,29 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * *
         rule in the stylesheet stops all of it at once. Nothing animates while the system is idle.
       </p>
 
+      <h2>Buy me compute</h2>
+      <p>
+        A support page and an embeddable widget, so a creator or a speaker can be given the work rather than the
+        coffee. The units are named for what they buy — a cup is one long conversation, a tide is one overnight
+        run — because a quantity of tokens means nothing to anyone and a night of work means something at once.
+        Prices come from the same book the ledger uses, so the quote and the charge cannot drift apart.
+      </p>
+      <p>
+        There are two rails and TIDEPOOL never touches the money on either. <strong>Cash</strong> goes straight
+        from supporter to creator through the creator’s own payment link; TIDEPOOL records the gift and raises
+        the budget. <strong>Capacity</strong> is a capped, time-boxed window on a key or a box the supporter
+        already owns — nothing bought, nothing sold, so nothing to resell. A personal seat is neither, here as
+        everywhere.
+      </p>
+      <p>
+        The widget is an <strong>iframe, not a script</strong>. A script tag on a creator’s site is code that
+        could change under them at any time with access to their whole page; a frame draws in its own box and
+        nothing else. It ships sandboxed, it has its own root layout so it carries none of this app with it, and
+        framing is permitted on <code>/embed/</code> alone — every other route sends{' '}
+        <code>frame-ancestors &apos;none&apos;</code>, because a clickjacked click on revoke or connect is
+        somebody’s capacity gone.
+      </p>
+
       <h2>What this deployment is</h2>
       <p>
         The app in §6.1 — the UI, the pure router, the pure meter, the ledger and the preload scheduler — running

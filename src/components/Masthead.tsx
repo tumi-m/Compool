@@ -13,6 +13,7 @@ const NAV = [
   { href: '/room', label: 'Room' },
   { href: '/preload', label: 'Preload' },
   { href: '/nodes', label: 'Nodes' },
+  { href: '/support', label: 'Support' },
   { href: '/open-source', label: 'Open source' },
   { href: '/ledger', label: 'Ledger' },
   { href: '/docs', label: 'Docs' },

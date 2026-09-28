@@ -911,3 +911,96 @@ fieldset { border: 0; margin: 0; padding: 0; }
   .heroBand { margin-top: -18px; margin-bottom: 16px; }
   .heroInner { padding: 16px 14px 14px; }
 }
+
+/* ---- buy me compute ------------------------------------------------------ */
+
+.supportWidget {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 15px;
+  font-size: 13px;
+}
+.supportWidget.compact { padding: 12px; font-size: 12.5px; }
+.supportWidget fieldset { border: 0; margin: 0; padding: 0; }
+.supportWidget legend { margin-bottom: 6px; }
+
+.supportButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.unitRow { display: grid; gap: 6px; }
+.unitPick {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--r);
+  background: var(--paper);
+}
+.unitPick:hover { border-color: var(--water); background: var(--foam); }
+.unitPick.on {
+  border-color: var(--water);
+  border-left-color: var(--water);
+  background: var(--foam);
+}
+.unitName { font-weight: 600; }
+.unitBuys { color: var(--ink-2); font-size: 11.5px; }
+.unitCost { color: var(--ink-1); font-size: 12px; }
+
+.wallRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  animation: slideIn 220ms var(--ease-out) both;
+}
+.wallRow:last-child { border-bottom: 0; }
+.wallAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  flex: none;
+}
+.wallNote { font-style: italic; margin-top: 1px; }
+
+/* The embed renders on somebody else's page, so it brings its own ground and
+   never assumes anything about the document around it. */
+body.embedBody {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+body.embedBody .supportWidget { height: 100vh; overflow-y: auto; box-sizing: border-box; }
+
+.snippetBox {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--water);
+  border-radius: var(--r);
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0;
+}

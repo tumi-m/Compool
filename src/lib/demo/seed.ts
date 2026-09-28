@@ -14,8 +14,25 @@ import { PRELOAD_DEFAULTS } from '../preload/schedule';
 import type { Rung } from '../ladder/rungs';
 import { entriesFor } from '../meter/ledger';
 import type { Idea } from '../orchestrate/triage';
+import type { Goal, Pledge } from '../support/pledge';
 
 export const ME = 'user_me';
+
+/** The creator-facing half of "buy me compute". */
+export interface SupportProfile {
+  enabled: boolean;
+  handle: string;
+  displayName: string;
+  /** One line, in the creator's own words, about what the compute is for. */
+  blurb: string;
+  goal: Goal | null;
+  /**
+   * The creator's own payment link — Stripe, Ko-fi, GitHub Sponsors, anything.
+   * TIDEPOOL links out to it and never handles the money.
+   */
+  payLink: string | null;
+  pledges: Pledge[];
+}
 
 export interface Workspace {
   users: User[];
@@ -30,6 +47,7 @@ export interface Workspace {
   preload: PreloadItem[];
   rungs: Rung[];
   ideas: Idea[];
+  support: SupportProfile;
   /** 24 hourly buckets of tokens spent, local time. Feeds the trough finder. */
   hourlyLoad: number[];
   preset: string;
@@ -58,6 +76,47 @@ export const LADDER: Rung[] = [
   { id: 'rung_spark_contrib', name: 'Spark 1.3 Contributor', tier: 'free', provider: 'openai', openWeight: true, canPlan: true, verified: false, note: 'Free tier.' },
   { id: 'rung_local_70b', name: 'Local 70B (open weight)', tier: 'free', provider: 'ollama', openWeight: true, canPlan: true, verified: true, note: 'Your own hardware. Never runs out; only gets slower. This rung is the floor that makes always-on true.' },
 ];
+
+/**
+ * Built inline rather than through newPledge, because importing it here would
+ * drag the whole support module into the chunk that every route loads — the
+ * seed is reachable from the provider, and the provider is in the shared layout.
+ */
+const seedPledge = (p: Omit<Pledge, 'tokens' | 'redeemedTokens'> & { unitTokens: number }): Pledge => ({
+  ...p,
+  tokens: p.unitTokens * p.count,
+  redeemedTokens: 0,
+});
+
+const SEED_SUPPORT = (now: number): SupportProfile => ({
+  enabled: true,
+  handle: 'harbour',
+  displayName: 'Harbour build',
+  blurb: 'I build open tools for pooled AI capacity, and publish everything I learn doing it.',
+  goal: { label: 'a month of overnight digests', tokens: 7_500_000 },
+  payLink: null,
+  pledges: [
+    seedPledge({
+      id: 'pl_seed_1', creatorHandle: 'harbour', kind: 'capacity', supporterName: 'Ada',
+      message: 'The stall-breaker saved my weekend. Here is a night of my box.',
+      unitId: 'spring', unitTokens: 1_000_000, count: 1, sourceId: 'src_ollama_b',
+      supporterUserId: 'user_ada', expiresAt: iso(now + 86_400_000 * 6), state: 'active',
+      createdAt: iso(now - 86_400_000 * 2),
+    }),
+    seedPledge({
+      id: 'pl_seed_2', creatorHandle: 'harbour', kind: 'capacity', supporterName: 'Kwame',
+      message: null, unitId: 'tide', unitTokens: 250_000, count: 2, sourceId: 'src_openai_a',
+      supporterUserId: 'user_kwame', expiresAt: iso(now + 86_400_000 * 3), state: 'active',
+      createdAt: iso(now - 86_400_000),
+    }),
+    seedPledge({
+      id: 'pl_seed_3', creatorHandle: 'harbour', kind: 'cash', supporterName: 'Someone from the talk',
+      message: 'Great session — go build the thing.', unitId: 'tide', unitTokens: 250_000, count: 1,
+      sourceId: null, supporterUserId: null, expiresAt: null, state: 'pending',
+      createdAt: iso(now - 3_600_000),
+    }),
+  ],
+});
 
 const SEED_IDEAS = (now: number): Idea[] => [
   { id: 'idea_1', text: 'Replace the hand-rolled SSE parser with the adapter interface', impact: 5, effort: 4, urgency: 4, blockedBy: [], status: 'inbox', createdAt: iso(now - 7_200_000) },
@@ -229,6 +288,7 @@ export function isWorkspace(v: unknown): v is Workspace {
   if (typeof w.headroom !== 'object' || w.headroom === null) return false;
   if (typeof w.pool !== 'object' || w.pool === null || typeof w.pool.id !== 'string') return false;
   if (typeof w.seededAt !== 'string' || !Number.isFinite(Date.parse(w.seededAt))) return false;
+  if (typeof w.support !== 'object' || w.support === null || !Array.isArray(w.support.pledges)) return false;
   return true;
 }
 
@@ -316,6 +376,7 @@ export function seedWorkspace(now = Date.now()): Workspace {
     users,
     rungs: LADDER,
     ideas: SEED_IDEAS(now),
+    support: SEED_SUPPORT(now),
     pool: {
       id: 'pool_demo', slug: 'tidepool-demo', name: 'Harbour build', kind: 'hackathon',
       ownerUserId: ME, budgetCapUsd: 40, budgetPeriod: 'day', settlePolicy: 'none',

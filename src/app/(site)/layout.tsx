@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Masthead } from '@/components/Masthead';
 import { WorkspaceProvider } from '@/components/WorkspaceProvider';
-import './globals.css';
+import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'TIDEPOOL — pooled AI capacity',

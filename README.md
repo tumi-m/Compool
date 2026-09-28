@@ -243,20 +243,81 @@ rather than leaving them as untested code paths.
   the run list windows. Designed before the data existed, because a real hackathon
   produces it in hour one.
 
+## Buy me compute
+
+A support page and an embeddable widget, so a creator, speaker or maintainer can
+be given the *work* rather than the coffee.
+
+The units are named for what they buy, because "500,000 tokens" means nothing to
+anybody and "one overnight run" means something immediately:
+
+| | | |
+|---|---|---|
+| A cup | one long conversation | 50k |
+| A tide | one overnight run | 250k |
+| A spring tide | a full night of batch work | 1M |
+
+Prices come from the same price book the ledger uses, so what a supporter is
+quoted and what the creator is charged cannot drift apart.
+
+**Two rails, and TIDEPOOL never touches the money on either.**
+
+- **Cash** — the supporter pays the creator directly through the creator's own
+  payment link (Stripe, Ko-fi, GitHub Sponsors, anything). TIDEPOOL records the
+  gift and raises the creator's budget. It never holds, routes or takes a cut:
+  taking a percentage of someone else's inference bill is the one revenue model
+  the plan rules out, and standing between a supporter and a creator's money is
+  how a side project acquires a compliance department.
+- **Capacity** — a supporter lends a capped, time-boxed window on an API key or a
+  GPU box they already own. Nothing is bought or sold, which keeps it clear of the
+  unresolved question about reselling prepaid credit: no consideration, nothing to
+  resell.
+- **Never a personal seat.** §3 holds at the gifting boundary exactly as it holds
+  everywhere else, and a support page is precisely where someone would try.
+
+### The embed
+
+`/support` generates a snippet; `/embed/[handle]` renders it; `/c/[handle]` is the
+full public page for a bio, a README or a talk's last slide.
+
+- **An iframe, not a script.** A script tag on a creator's site is code we could
+  change under them at any time, with access to everything on the page. A frame
+  can only ever draw inside its own box. For a widget that shows a number and
+  links out, the script buys nothing and costs the creator their site's integrity.
+- It ships **sandboxed** (`allow-scripts allow-popups`, and deliberately *not*
+  `allow-same-origin`, which together with `allow-scripts` would undo the sandbox).
+- The embed has **its own root layout** in a separate route group. A nested layout
+  still renders inside the app's, and the first version shipped the whole masthead
+  stapled to the widget.
+- **`frame-ancestors` is `*` on `/embed/` and `'none'` everywhere else.** The app
+  has revoke, connect and spend controls on it; a clickjacked click on any of them
+  is somebody's capacity gone.
+- The **frame height is computed from the options the creator picked**, because a
+  sandboxed cross-origin frame cannot resize itself and the only way to let it
+  would be a script on their page. Every configuration is verified to fit — a
+  clipped Give button makes the whole widget decorative.
+
 ## Performance
 
-`pnpm check:bundle` measures gzipped first-load JavaScript per route from Next's
-own build manifest and fails on a regression over 5 KB against the committed
-baseline.
+`pnpm check:bundle` measures gzipped first-load JavaScript from Next's own build
+manifest, and measures **two** numbers rather than one:
 
-The framework floor is about 100 KB gzip — an empty route costs that before a
-line of this code runs — so the plan's 120 KB budget leaves roughly 20 KB per
-route. Twelve of fourteen routes are inside it. The pool (125.4 KB) and the room
-(123.5 KB) are over, and the script records that as a **named exception with a
-stated reason** rather than by raising the budget, so any other route crossing
-120 KB still fails the build. The capacity field cost 2.7 KB and 2.4 KB
-respectively, and the exception records that too — a budget you can quietly move
-is not a budget. Splitting the two diagrams out with `next/dynamic`
+- **shared** — what every route in a layout group pays before any page code runs.
+  Budget 120 KB, the plan's number applied to the thing every route genuinely
+  loads. Currently 116.6 KB, so **3.4 KB of headroom left**, and that shrinking is
+  the real thing to watch.
+- **route** — the page's own code on top of its shell, computed from the chunk
+  sets rather than by subtracting totals. Budget 14 KB; the heaviest page is
+  11.6 KB.
+
+An earlier version reported one total per route against a flat 120 KB. Once the
+shared shell reached 116 KB that was failing six pages over three kilobytes of
+their own code, which tells you nothing and trains people to add exceptions.
+Splitting the two puts the failure where the cause is, and the check now passes
+with no exceptions at all.
+
+Regressions over 3 KB against the committed baseline fail the build. Both failure
+modes are verified by making them fire, not assumed. Splitting the two diagrams out with `next/dynamic`
 was tried and reverted: both render above the fold, so deferring them buys a
 skeleton flash rather than a faster first paint.
 
