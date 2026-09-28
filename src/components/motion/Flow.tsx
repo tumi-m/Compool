@@ -49,6 +49,24 @@ export function Flow({
 
   return (
     <div className="flowWrap">
+      {/* Narrow screens: the same seven stages as a vertical stepper. A 1060px
+          diagram scaled onto a phone is a diagram with nine-pixel labels. */}
+      <ol className={`flowTall${live ? ' live' : ''}`} aria-label="Request pipeline">
+        {STAGES.map((st, i) => {
+          const state = i === failIdx ? 'failed' : i === idx ? 'now' : idx > i ? 'done' : 'todo';
+          return (
+            <li key={st.id} data-state={state} aria-current={state === 'now' ? 'step' : undefined}>
+              <span className="flowTallDot" aria-hidden="true" />
+              <span className="flowTallText">
+                <span className="flowTallLabel">{st.label}</span>
+                <span className="flowTallSub">{st.sub}</span>
+              </span>
+              {st.effect ? <span className="flowTallEffect">effect</span> : null}
+            </li>
+          );
+        })}
+      </ol>
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className={`flow${live ? ' live' : ''}`}

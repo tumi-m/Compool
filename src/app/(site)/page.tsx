@@ -147,7 +147,7 @@ export default function PoolPage() {
       </div>
 
       <div className="row" style={{ justifyContent: 'flex-end', marginTop: -8 }}>
-        <div className="row">
+        <div className="row poolControls">
           <label htmlFor="preset" className="srOnly">Routing intent</label>
           <select
             id="preset"

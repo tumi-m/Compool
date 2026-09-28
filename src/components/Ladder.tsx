@@ -47,8 +47,8 @@ export function Ladder({
 
         return (
           <div className="ladderRung" data-state={state} key={tier}>
-            <span className="badge" style={{ minWidth: 118 }}>{TIER_COPY[tier].label}</span>
-            <span className="small" style={{ flex: '1 1 160px', minWidth: 0 }}>
+            <span className="badge rungTier" style={{ minWidth: 118 }}>{TIER_COPY[tier].label}</span>
+            <span className="small rungNames" style={{ flex: '1 1 160px', minWidth: 0 }}>
               {group.map((r) => r.name).join(' · ')}
             </span>
             <span className="srOnly">
@@ -61,8 +61,8 @@ export function Ladder({
             <div className="meterBar rungFill" style={{ maxWidth: 140 }}>
               <span style={{ width: `${Math.max(2, best * 100)}%` }} data-over={best <= 0.03 ? 'true' : 'false'} />
             </div>
-            <span className="num small" style={{ width: 40, textAlign: 'right' }}>{pct(best)}</span>
-            <span className="small" style={{ width: 74, textAlign: 'right', color: 'var(--ink-2)' }}>
+            <span className="num small rungPct" style={{ width: 40, textAlign: 'right' }}>{pct(best)}</span>
+            <span className="small rungState" style={{ width: 74, textAlign: 'right', color: 'var(--ink-2)' }}>
               {state === 'current' ? 'taking work' : state === 'spent' ? 'spent' : 'in reserve'}
             </span>
           </div>
