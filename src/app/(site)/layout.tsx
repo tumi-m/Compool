@@ -35,8 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Toaster>
           <WorkspaceProvider>
+            <a href="#main" className="skipLink">Skip to content</a>
             <Masthead />
-            <main className="shell" id="main">{children}</main>
+            <main className="shell" id="main" tabIndex={-1}>{children}</main>
           </WorkspaceProvider>
         </Toaster>
       </body>

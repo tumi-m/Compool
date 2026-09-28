@@ -105,10 +105,32 @@ p { margin: 0 0 12px; max-width: 68ch; }
 a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 
 :focus-visible {
-  outline: 2px solid var(--water);
+  /* --link, not --water: it is solved to 4.5:1 on every ground, where water
+     was 1.96:1 against the masthead and marginal elsewhere. */
+  outline: 2px solid var(--link);
   outline-offset: 2px;
   border-radius: 2px;
 }
+/* On the deep-water masthead the ring is the light ink instead. */
+.masthead :focus-visible { outline-color: var(--on-deep); }
+
+/* Keyboard users used to tab through the wordmark, eleven links and the theme
+   toggle on every page before reaching anything on it. */
+.skipLink {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  background: var(--panel);
+  color: var(--ink-0);
+  border: 2px solid var(--link);
+  border-radius: var(--r);
+  padding: 8px 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 120ms var(--ease-out);
+}
+.skipLink:focus { top: 10px; }
 
 /* ---- masthead ------------------------------------------------------------ */
 
@@ -1309,3 +1331,6 @@ label.row:has(.check) { cursor: pointer; }
 @media (max-width: 640px) {
   .toaster { left: 12px; right: 12px; bottom: 12px; width: auto; }
 }
+
+/* The skip target takes focus without drawing a ring round the whole page. */
+main:focus { outline: none; }
