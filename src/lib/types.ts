@@ -263,6 +263,9 @@ export interface Run {
   /** What admit() had to say about it — e.g. that it ran on owned compute
    *  because the budget was spent. */
   notice?: string;
+  /** Last time the tab running it touched it. A streaming run whose beat has
+   *  gone stale is a run whose tab closed, not a run still going. */
+  beatAt?: string;
 }
 
 export interface NodeRecord {

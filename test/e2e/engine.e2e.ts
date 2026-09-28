@@ -132,4 +132,37 @@ d('the run engine', () => {
     expect(imbalances(w)).toBe(0);
     await p.close();
   }, 60_000);
+
+  it('recovers a run orphaned by a reload, metering what it drew', async () => {
+    const p = await fresh();
+    await p.getByRole('button', { name: 'Run a batch' }).click();
+    await p.waitForTimeout(500);
+    await p.reload({ waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(7500);
+    const w = await read(p);
+    expect(w.runs[0].state).toBe('failed');
+    expect(w.usage.find((u) => u.runId === w.runs[0].id)?.estimated).toBe(true);
+    expect(imbalances(w)).toBe(0);
+    await p.close();
+  }, 60_000);
+
+  it('does not let one tab undo what another tab did', async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const a = await ctx.newPage();
+    const b = await ctx.newPage();
+    await a.goto(`${BASE}/preload`, { waitUntil: 'domcontentloaded' });
+    await a.evaluate(() => localStorage.clear());
+    await a.reload({ waitUntil: 'domcontentloaded' });
+    await a.waitForTimeout(900);
+    await b.goto(`${BASE}/orchestrate`, { waitUntil: 'domcontentloaded' });
+    await b.waitForTimeout(900);
+    await a.getByRole('button', { name: /^Remove / }).first().click();
+    await a.waitForTimeout(300);
+    const kept = (await read(a) as unknown as { preload: unknown[] }).preload.length;
+    await b.fill('#dump', 'an idea from the other tab');
+    await b.getByRole('button', { name: /Capture/ }).click();
+    await b.waitForTimeout(400);
+    expect((await read(b) as unknown as { preload: unknown[] }).preload.length).toBe(kept);
+    await ctx.close();
+  }, 60_000);
 });

@@ -101,10 +101,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
+  const inflightIds = useRef(new Set<string>());
+
+  /** The last serialised workspace this tab wrote or adopted. */
+  const lastSerialized = useRef<string | null>(null);
+
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(KEY, JSON.stringify(ws));
+      const raw = JSON.stringify(ws);
+      if (raw === lastSerialized.current) return;
+      lastSerialized.current = raw;
+      window.localStorage.setItem(KEY, raw);
     } catch {
       /* private mode, quota, blocked site data — the app still works */
     }
@@ -118,6 +126,36 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [hydrated]);
 
   const update = useCallback((fn: (w: Workspace) => Workspace) => setWs((w) => fn(w)), []);
+
+  /**
+   * Another tab wrote. Each tab used to hold its own copy and write the whole
+   * thing back, so the last writer silently undid everything the other tab
+   * had done — delete something in one tab, save anything in another, and it
+   * came back. Now a tab adopts what another tab wrote, keeping only its own
+   * in-flight runs the other tab had not yet seen.
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== KEY || !e.newValue || e.newValue === lastSerialized.current) return;
+      let incoming: unknown;
+      try {
+        incoming = JSON.parse(e.newValue);
+      } catch {
+        return;
+      }
+      if (!isWorkspace(incoming)) return;
+      const theirs = incoming;
+      lastSerialized.current = e.newValue;
+      setWs((mine) => {
+        const known = new Set(theirs.runs.map((r) => r.id));
+        const keep = mine.runs.filter((r) => inflightIds.current.has(r.id) && !known.has(r.id));
+        return keep.length ? { ...theirs, runs: [...keep, ...theirs.runs] } : theirs;
+      });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [hydrated]);
 
   // An idea's status follows its run wherever the run ends — the engine, an
   // abort, a reset — rather than depending on the orchestrate page being open.
@@ -213,6 +251,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const cancelAll = () => {
     for (const f of inflight.current.values()) f.timers.forEach((t) => window.clearTimeout(t));
     inflight.current.clear();
+    inflightIds.current.clear();
   };
   useEffect(() => () => cancelAll(), []);
 
@@ -246,6 +285,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (!f) return;
     f.timers.forEach((t) => window.clearTimeout(t));
     inflight.current.delete(runId);
+    inflightIds.current.delete(runId);
     update((w) => {
       let next = w;
       let cost = 0;
@@ -264,6 +304,59 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       };
     });
   };
+
+  /**
+   * Runs orphaned by a closed or reloaded tab.
+   *
+   * The engine lives in the page, so a reload mid-run killed its timers and
+   * left the run at "streaming" forever — animating its basin and showing one
+   * in flight, permanently. A run nobody has touched for a while, that this tab
+   * is not running, is recovered the way §9.2 treats any aborted stream: failed,
+   * with an estimated usage event for what it had drawn. The heartbeat is what
+   * keeps this from killing a run another open tab is still driving.
+   */
+  const STALE_MS = 5_000;
+  useEffect(() => {
+    if (!hydrated) return;
+    const stale = ws.runs.filter(
+      (r) =>
+        (r.state === 'streaming' || r.state === 'metering') &&
+        !inflightIds.current.has(r.id) &&
+        now - Date.parse(r.beatAt ?? r.createdAt) > STALE_MS,
+    );
+    if (stale.length === 0) return;
+    update((w) => {
+      let next = w;
+      for (const r of stale) {
+        const live = next.runs.find((x) => x.id === r.id);
+        if (!live || (live.state !== 'streaming' && live.state !== 'metering')) continue;
+        const src = next.sources.find((s) => s.id === live.sourceId);
+        let cost = 0;
+        const drawn = Math.round(live.outputTokens / 0.45);
+        if (src && drawn > 0) {
+          const m = meter(next, live.id, { sourceId: src.id, ownerUserId: src.ownerUserId, provider: src.provider, model: modelFor(src) }, usageFor(drawn, live.kind), true);
+          next = m.w;
+          cost = m.cost;
+        }
+        next = {
+          ...next,
+          runs: next.runs.map((x) =>
+            x.id === live.id
+              ? {
+                  ...x,
+                  state: 'failed',
+                  costUsd: cost,
+                  finishedAt: new Date().toISOString(),
+                  errorCode:
+                    'The tab running this closed before it finished. What it had drawn is metered as an estimate. (In production the gateway owns the run, so this cannot happen there.)',
+                }
+              : x,
+          ),
+        };
+      }
+      return next;
+    });
+  }, [now, hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startRun = useCallback<Ctx['startRun']>(
     (opts) => {
@@ -373,6 +466,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         kind: opts.kind, model, ownerUserId: source.ownerUserId, provider: source.provider,
       };
       inflight.current.set(runId, flight);
+      inflightIds.current.add(runId);
 
       const run: Run = {
         id: runId, poolId: w0.pool.id, title: opts.title, requestedBy: ME, attributedTo: ME,
@@ -386,6 +480,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         needsRework: rung.kind === 'picked' ? rung.degraded : false,
         reworkOfRunId: opts.reworkOfRunId,
         notice: admission.warning ?? undefined,
+        beatAt: new Date(at).toISOString(),
       };
       update((w) => ({ ...w, runs: [run, ...w.runs].slice(0, RUN_CAP) }));
 
@@ -406,7 +501,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                   : w.headroom,
                 runs: w.runs.map((r) =>
                   r.id === runId
-                    ? { ...r, outputTokens: r.outputTokens + Math.round(perTick * 0.45), costUsd: costUsd(usageFor(perTick * i, opts.kind), model) }
+                    ? { ...r, outputTokens: r.outputTokens + Math.round(perTick * 0.45), costUsd: costUsd(usageFor(perTick * i, opts.kind), model), beatAt: new Date().toISOString() }
                     : r,
                 ),
               };
@@ -420,12 +515,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       // makes "no run completes without a usage record" structural.
       flight.timers.push(
         window.setTimeout(() => {
-          update((w) => ({ ...w, runs: w.runs.map((r) => (r.id === runId ? { ...r, state: 'metering' } : r)) }));
+          update((w) => ({ ...w, runs: w.runs.map((r) => (r.id === runId ? { ...r, state: 'metering', beatAt: new Date().toISOString() } : r)) }));
         }, (ticks + 1) * 220),
       );
       flight.timers.push(
         window.setTimeout(() => {
           inflight.current.delete(runId); // releases whatever reservation is left
+          inflightIds.current.delete(runId);
           update((w) => {
             const { w: metered, cost } = meter(w, runId, flight, usageFor(opts.estimatedTokens, opts.kind), false);
             return {

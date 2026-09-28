@@ -2,6 +2,12 @@
 
 import { duration } from '@/lib/format';
 
+const hhmm = (h: number) => {
+  const hr = Math.floor(h) % 24;
+  const mn = Math.round((h - Math.floor(h)) * 60);
+  return `${String(hr).padStart(2, '0')}:${String(mn).padStart(2, '0')}`;
+};
+
 /**
  * A 24-hour dial with the preload window shaded and a hand at the current local
  * hour. The arc fills as the window approaches and turns over when it opens.
@@ -59,8 +65,8 @@ export function TideClock({
         role="img"
         aria-label={
           open
-            ? `The preload window is open now. It runs from ${String(anchorHour).padStart(2, '0')}:00 for ${windowHours} hours.`
-            : `The preload window opens at ${String(anchorHour).padStart(2, '0')}:00 local, ${duration(msUntil)} from now.`
+            ? `The preload window is open now. It opened at ${hhmm(anchorHour)} your time and runs for ${windowHours} hours.`
+            : `The next preload window opens at ${hhmm(anchorHour)} your time, ${duration(msUntil)} from now.`
         }
       >
         <circle cx={MID} cy={MID} r={R} className="tideClockTrack" strokeWidth={7} />
@@ -94,7 +100,7 @@ export function TideClock({
         {/* hour pips, with the window's own hours marked */}
         {Array.from({ length: 24 }, (_, h) => {
           const [px, py] = point(h, R - 13);
-          const inWindow = (h - anchorHour + 24) % 24 < windowHours;
+          const inWindow = (h - Math.floor(anchorHour) + 24) % 24 < windowHours;
           return (
             <circle key={h} cx={px} cy={py} r={h % 6 === 0 ? 1.6 : 1} className="tideClockPip" data-in={String(inWindow)} />
           );
@@ -111,7 +117,7 @@ export function TideClock({
       <div>
         <div className="sectionLabel">{open ? 'Window is open' : 'Window opens'}</div>
         <div className="num" style={{ fontSize: 25, lineHeight: 1.1 }}>
-          {String(anchorHour).padStart(2, '0')}:00
+          {hhmm(anchorHour)}
         </div>
         <div className="hint" style={{ marginTop: 2 }}>
           {open ? `${windowHours}h window, running now` : `${duration(msUntil)} from now · ${windowHours}h long`}

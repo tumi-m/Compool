@@ -100,6 +100,24 @@ export function msUntilWindow(item: PreloadItem, now: number): number {
   return Number.POSITIVE_INFINITY;
 }
 
+/**
+ * The moment the item's current window opened, or its next one will — as a
+ * timestamp, so it can be shown in whatever zone the *viewer* is in. Showing an
+ * item's anchor hour directly ("03:00") to someone in another zone was wrong by
+ * the difference between the two: six hours for a New York viewer looking at a
+ * Johannesburg queue.
+ */
+export function windowStartAt(item: PreloadItem, now: number): number {
+  if (!isWindowOpen(item, now)) return now + msUntilWindow(item, now);
+  // Open: walk back to the minute it opened.
+  let t = now;
+  for (let i = 0; i < item.windowHours * 60 + 1; i += 1) {
+    if (!isWindowOpen(item, t - 60_000)) return t - (t % 60_000);
+    t -= 60_000;
+  }
+  return t;
+}
+
 /** Already ran during this calendar day in the item's own zone. */
 export function alreadyRanThisWindow(item: PreloadItem, now: number): boolean {
   if (!item.lastRunAt) return false;

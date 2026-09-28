@@ -10,6 +10,7 @@ import {
   localParts,
   msUntilWindow,
   plan,
+  windowStartAt,
   type PreloadContext,
   type PreloadItem,
 } from '@/lib/preload/schedule';
@@ -226,5 +227,21 @@ describe('planning the whole queue', () => {
     const p = plan([item()], ctx(at('2026-09-06T03:30:00Z'), { candidates: [] }));
     expect(p.dispatchCount).toBe(0);
     expect(p.decisions[0].hold).toBe('no_source');
+  });
+});
+
+describe('showing a window in the viewer’s own zone', () => {
+  it('finds the real moment a Johannesburg 03:00 window opens — 21:00 the evening before in New York', () => {
+    const jhb = item({ tz: 'Africa/Johannesburg' });
+    const now = at('2026-09-30T18:00:00Z'); // 14:00 in New York, 20:00 in Johannesburg
+    const start = windowStartAt(jhb, now);
+    const ny = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(start));
+    expect(ny).toBe('21:00');
+    expect(start).toBe(at('2026-10-01T01:00:00Z'));
+  });
+
+  it('returns when the current window opened, if it is open now', () => {
+    const now = at('2026-09-30T04:20:00Z');
+    expect(windowStartAt(item(), now)).toBe(at('2026-09-30T03:00:00Z'));
   });
 });

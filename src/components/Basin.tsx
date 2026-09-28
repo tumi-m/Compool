@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { fillFraction, projectedHeadroom, tideLevel } from '@/lib/router/headroom';
-import { clockAt, pct, tokens } from '@/lib/format';
+import { pct, tokens, whenAt } from '@/lib/format';
 import type { CapacitySource, Headroom } from '@/lib/types';
 
 /** Emit a droplet whenever the reported token count actually falls. */
@@ -102,7 +102,7 @@ export function Basin({
               : `${tokens(p?.tokens ?? 0)} / ${tokens(headroom.limitTokens)}`}
         </span>
         <span>
-          {dead || !headroom ? '—' : `${pct(f)} · next tide ${clockAt(Date.parse(headroom.resetAt))}`}
+          {dead || !headroom ? '—' : `${pct(f)} · next tide ${whenAt(Date.parse(headroom.resetAt), now)}`}
         </span>
       </div>
 

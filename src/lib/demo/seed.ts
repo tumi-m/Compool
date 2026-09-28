@@ -169,7 +169,22 @@ export function isWorkspace(v: unknown): v is Workspace {
   return true;
 }
 
+/**
+ * Seeded preload items used to be hard-coded to Johannesburg, so anyone
+ * anywhere else was shown a "03:00" that happened at some other hour of their
+ * night. They are seeded in the zone of whoever is looking. (The server render
+ * resolves this to UTC, and the client re-seeds on hydration.)
+ */
+const zone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
 export function seedWorkspace(now = Date.now()): Workspace {
+  const VIEWER_TZ = zone();
   const users: User[] = [
     { id: ME, handle: 'you', displayName: 'You' },
     { id: 'user_ada', handle: 'ada', displayName: 'Ada' },
@@ -226,7 +241,7 @@ export function seedWorkspace(now = Date.now()): Workspace {
       id: 'pl_digest', title: 'Overnight repo digest',
       prompt: 'Summarise every commit merged to main since the last digest. Flag anything that changes a public interface, and list the three files most likely to need a follow-up.',
       kind: 'digest', model: '*', estimatedTokens: 180_000, maxCostUsd: 0.75,
-      repeat: 'daily', tz: 'Africa/Johannesburg', anchorHour: PRELOAD_DEFAULTS.anchorHour,
+      repeat: 'daily', tz: VIEWER_TZ, anchorHour: PRELOAD_DEFAULTS.anchorHour,
       windowHours: PRELOAD_DEFAULTS.windowHours, requireHeadroomFraction: 0.7,
       enabled: true, state: 'queued', lastRunAt: null, lastSkipReason: null, lastCostUsd: null,
       createdAt: iso(now - 86_400_000 * 2),
@@ -235,7 +250,7 @@ export function seedWorkspace(now = Date.now()): Workspace {
       id: 'pl_warm', title: 'Warm the gateway context',
       prompt: 'Load packages/gateway and packages/router into context and hold them. No output beyond an acknowledgement.',
       kind: 'warm_cache', model: 'anthropic:workhorse', estimatedTokens: 240_000, maxCostUsd: 1.2,
-      repeat: 'weekdays', tz: 'Africa/Johannesburg', anchorHour: 3, windowHours: 3, requireHeadroomFraction: 0.75,
+      repeat: 'weekdays', tz: VIEWER_TZ, anchorHour: 3, windowHours: 3, requireHeadroomFraction: 0.75,
       enabled: true, state: 'queued', lastRunAt: null, lastSkipReason: null, lastCostUsd: null,
       createdAt: iso(now - 86_400_000 * 2),
     },
@@ -243,7 +258,7 @@ export function seedWorkspace(now = Date.now()): Workspace {
       id: 'pl_triage', title: 'Triage the failing suite',
       prompt: 'Run through last night’s CI log. Group failures by root cause, and propose the smallest patch for each group.',
       kind: 'bulk', model: '*', estimatedTokens: 90_000, maxCostUsd: 0.4,
-      repeat: 'daily', tz: 'Africa/Johannesburg', anchorHour: 3, windowHours: 3, requireHeadroomFraction: 0.6,
+      repeat: 'daily', tz: VIEWER_TZ, anchorHour: 3, windowHours: 3, requireHeadroomFraction: 0.6,
       enabled: false, state: 'queued', lastRunAt: null, lastSkipReason: null, lastCostUsd: null,
       createdAt: iso(now - 86_400_000),
     },

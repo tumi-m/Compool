@@ -12,10 +12,11 @@ import {
   localParts,
   msUntilWindow,
   plan,
+  windowStartAt,
   type PreloadItem,
   type PreloadKind,
 } from '@/lib/preload/schedule';
-import { clockAt, duration, pct, tokens, usd } from '@/lib/format';
+import { clockAt, duration, pct, tokens, usd, whenAt, zoneName } from '@/lib/format';
 import { TideClock } from '@/components/motion/TideClock';
 import { useToast } from '@/components/Toaster';
 import { PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
@@ -50,8 +51,21 @@ export default function PreloadPage() {
   const trough = findTrough(ws.hourlyLoad, PRELOAD_DEFAULTS.windowHours);
   const localHour = localParts(now, TZ).hour;
 
-  const anchors = new Set(ws.preload.map((i) => i.anchorHour));
-  const anchor = anchors.size === 1 ? [...anchors][0] : PRELOAD_DEFAULTS.anchorHour;
+  // Everything on this page is drawn in the viewer's own time. An item's
+  // anchorHour is in the item's zone, and used directly it was wrong by the
+  // difference between the two — six hours for a New York viewer looking at a
+  // Johannesburg queue. So the next window is found as a moment, then shown here.
+  const enabled = ws.preload.filter((i) => i.enabled);
+  const starts = enabled.map((i) => windowStartAt(i, now));
+  const nextStart = starts.length ? Math.min(...starts) : null;
+  const inViewer = (t: number) => {
+    const p = localParts(t, TZ);
+    const m = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, minute: '2-digit' }).format(new Date(t)));
+    return { hour: p.hour, minute: m };
+  };
+  const anchor = nextStart !== null ? inViewer(nextStart).hour : PRELOAD_DEFAULTS.anchorHour;
+  const anchorMinute = nextStart !== null ? inViewer(nextStart).minute : 0;
+  const localMinute = inViewer(now).minute;
 
   const runNow = (item: PreloadItem) => {
     const d = p.decisions.find((x) => x.itemId === item.id);
@@ -125,10 +139,10 @@ export default function PreloadPage() {
       <div className="grid cols2" hidden={!hydrated}>
         <div className="panel stackv">
           <TideClock
-            anchorHour={anchor}
+            anchorHour={anchor + anchorMinute / 60}
             windowHours={PRELOAD_DEFAULTS.windowHours}
             localHour={localHour}
-            localMinute={new Date(now).getMinutes()}
+            localMinute={localMinute}
             msUntil={p.nextWindowMs}
             open={p.nextWindowMs === null || p.nextWindowMs === 0}
           />
@@ -156,8 +170,9 @@ export default function PreloadPage() {
             </div>
           </div>
           <div className="hint">
-            Times are local ({TZ}). The scheduler runs hourly in UTC and dispatches only the items whose own
-            local window is open, so 3am means 3am wherever the person is.
+            Shown in your time ({zoneName(TZ)}). Each item opens at its own local hour — the scheduler runs
+            hourly in UTC and dispatches only the items whose window is open where they were set, so 3am means
+            3am wherever the person is.
           </div>
         </div>
 
@@ -266,7 +281,12 @@ export default function PreloadPage() {
                       </td>
                       <td><span className="badge">{item.kind.replace('_', ' ')}</span></td>
                       <td className="num small">
-                        {String(item.anchorHour).padStart(2, '0')}:00 +{item.windowHours}h
+                        {whenAt(windowStartAt(item, now), now, TZ)} +{item.windowHours}h
+                        {item.tz !== TZ ? (
+                          <div className="hint">
+                            {String(item.anchorHour).padStart(2, '0')}:00 in {zoneName(item.tz)}
+                          </div>
+                        ) : null}
                         <div className="hint">{item.repeat}</div>
                       </td>
                       <td className="n">{tokens(item.estimatedTokens)}</td>
