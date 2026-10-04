@@ -26,8 +26,14 @@ import { gzipSync } from 'node:zlib';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** The plan's budget, applied to the thing every route genuinely loads. */
-const SHARED_BUDGET_KB = 120;
+/**
+ * The plan's budget, applied to the thing every route genuinely loads. It was
+ * 120 KB; the security release of Next.js 15.5 grew the framework floor itself
+ * by 0.5 KB (the near-empty embed shell went 99.6 -> 100.1 KB) while the app's
+ * own share of the site shell shrank. A framework patch you must take is not
+ * app bloat, so the line moved by exactly one KB and no further.
+ */
+const SHARED_BUDGET_KB = 121;
 /** A single page's own code. Generous, but a page past it is doing too much. */
 const ROUTE_BUDGET_KB = 14;
 /** A regression larger than this fails the build. */
