@@ -7,9 +7,14 @@ export const dynamic = 'force-dynamic';
 /**
  * The 3am dispatcher.
  *
- * Vercel Cron fires in UTC, and 3am is only ever meaningful locally, so this runs
- * hourly and dispatches only the items whose own zone says their window is open.
- * One person in Johannesburg and one in Lisbon both get their own 3am.
+ * Vercel Cron fires in UTC, and 3am is only ever meaningful locally, so each run
+ * dispatches only the items whose own zone says their window is open right now.
+ *
+ * How often it runs decides who that covers. vercel.json schedules it once a
+ * day at 01:00 UTC, because Vercel's Hobby plan refuses anything more frequent —
+ * that is 03:00 in UTC+2 and inside the three-hour window for UTC+0 to UTC+2.
+ * Called hourly (Vercel Pro, or the GitHub Actions workflow in
+ * .github/workflows/preload-cron.yml), every zone gets its own 3am.
  *
  * Dispatch itself belongs to the gateway (§6.2): a preload run is long, and a run
  * that dies at a serverless ceiling loses its metering tail. This endpoint decides

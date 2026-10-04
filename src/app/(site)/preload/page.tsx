@@ -170,9 +170,9 @@ export default function PreloadPage() {
             </div>
           </div>
           <div className="hint">
-            Shown in your time ({zoneName(TZ)}). Each item opens at its own local hour — the scheduler runs
-            hourly in UTC and dispatches only the items whose window is open where they were set, so 3am means
-            3am wherever the person is.
+            Shown in your time ({zoneName(TZ)}). Each item opens at its own local hour: whenever the server-side
+            scheduler runs, it dispatches only the items whose window is open where they were set. Run hourly,
+            3am means 3am wherever the person is; on Vercel’s free plan it runs once a day at 01:00 UTC.
           </div>
         </div>
 

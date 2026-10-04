@@ -86,8 +86,16 @@ cache warm of the files you will open first — and they run while the tide is i
 - The window defaults to **03:00 local for three hours**, and the trough finder
   proposes your own quietest stretch from the observed hourly load. 3am is the
   default, not the answer.
-- Vercel Cron fires hourly in UTC; the scheduler dispatches only items whose own
-  local window is open, so 3am means 3am wherever the person is.
+- Each scheduler run dispatches only items whose own local window is open at that
+  moment. How often it runs decides whose 3am it covers:
+  - **Vercel Hobby (free)** allows one cron run a day, so `vercel.json` runs it at
+    **01:00 UTC** — 03:00 in UTC+2, and inside the three-hour window for UTC+0 to
+    UTC+2. To aim it at your own night, set the hour to your 3am expressed in UTC.
+  - **Hourly** gives every zone its own 3am. Either upgrade to Vercel Pro and set
+    the schedule to `0 * * * *`, or use the included GitHub Actions workflow
+    (`.github/workflows/preload-cron.yml`), which is free: add repository secrets
+    `PRELOAD_CRON_URL` (your deployment's `/api/cron/preload`) and `CRON_SECRET`
+    (the same value as in Vercel). Without those secrets it does nothing.
 - Every item dispatches as `bulk`, so a source below 10% of its window stops
   taking preload while interactive work keeps running. Preload never competes
   with a person.

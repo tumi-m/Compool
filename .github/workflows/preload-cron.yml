@@ -1,0 +1,32 @@
+# Hourly preload scheduler for deployments on Vercel's Hobby plan, which only
+# allows one cron run a day. Each run dispatches only the items whose own local
+# window is open, so calling it hourly gives every time zone its own 3am.
+#
+# Inert until both repository secrets are set:
+#   PRELOAD_CRON_URL  https://<your-deployment>/api/cron/preload
+#   CRON_SECRET       the same value as CRON_SECRET in the Vercel project
+name: preload-cron
+
+on:
+  schedule:
+    - cron: '7 * * * *' # minute 7, off the top of the hour when GitHub's scheduler is busiest
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call the preload scheduler
+        env:
+          URL: ${{ secrets.PRELOAD_CRON_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "PRELOAD_CRON_URL or CRON_SECRET not set; nothing to do."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -H "Authorization: Bearer $SECRET" "$URL"

@@ -78,9 +78,11 @@ export default function DocsPage() {
         <li>On a personal seat it runs only on the owner’s own online node with unattended mode explicitly enabled. Nodes default to <code>offer</code>.</li>
         <li>Per-item caps and the pool budget both hard-stop it.</li>
       </ul>
-      <pre>{`# Vercel Cron fires hourly in UTC; the scheduler dispatches only the
-# items whose own local window is open, so 3am means 3am per person.
-vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 * * * *" }] }`}</pre>
+      <pre>{`# Each run dispatches only the items whose own local window is open now.
+# Vercel Hobby allows one cron run a day, so vercel.json runs it at 01:00 UTC
+# (03:00 in UTC+2). Hourly gives every zone its own 3am — use Vercel Pro
+# ("0 * * * *"), or the free GitHub Actions workflow in the repo.
+vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 1 * * *" }] }`}</pre>
 
       <h2>Always on, and the rework loop</h2>
       <p>
