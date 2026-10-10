@@ -3,15 +3,15 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useWorkspace, ME } from '@/components/WorkspaceProvider';
-import { SupportWidget } from '@/components/support/SupportWidget';
+import { SupportWidget, firstName } from '@/components/support/SupportWidget';
 import {
   DEFAULT_EMBED, embedSize, embedSnippet, isValidHandle, linkSnippet, normaliseHandle,
   type EmbedOptions, type EmbedVariant,
 } from '@/lib/support/embed';
-import { giftableSources, totals, type Pledge } from '@/lib/support/pledge';
+import { MAX_REPLY, giftableSources, totals, type Pledge } from '@/lib/support/pledge';
 import { useToast } from '@/components/Toaster';
-import { describeTokens, UNITS } from '@/lib/support/units';
-import { tokens as fmtTokens } from '@/lib/format';
+import { describeTokens, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
+import { tokens as fmtTokens, usd } from '@/lib/format';
 
 /** The creator's side: turn it on, say what it is for, take the snippet. */
 export default function SupportPage() {
@@ -28,6 +28,28 @@ export default function SupportPage() {
   const set = (patch: Partial<typeof p>) => update((w) => ({ ...w, support: { ...w.support, ...patch } }));
   const { toast } = useToast();
   const pending = p.pledges.filter((x) => x.state === 'pending');
+  const confirmed = p.pledges
+    .filter((x) => x.state === 'active' || x.state === 'spent')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  // Saying thank you is half of why a tip jar works. The reply goes on the
+  // public wall under the supporter's note.
+  const thank = (pledge: Pledge) => {
+    const reply = (drafts[pledge.id] ?? '').trim().slice(0, MAX_REPLY);
+    update((w) => ({
+      ...w,
+      support: {
+        ...w.support,
+        pledges: w.support.pledges.map((x) => (x.id === pledge.id ? { ...x, reply: reply || null } : x)),
+      },
+    }));
+    setDrafts((d) => {
+      const { [pledge.id]: _gone, ...rest } = d;
+      return rest;
+    });
+    toast(reply ? `Thanked ${pledge.supporterName}. It is on your wall.` : `Removed your reply to ${pledge.supporterName}.`, { tone: 'good' });
+  };
 
   // The page showed "awaiting payment" with no way to act on it. Confirming is
   // the step that turns a promise into capacity, so it belongs here.
@@ -68,24 +90,59 @@ export default function SupportPage() {
 
   return (
     <div className="stackv" style={{ gap: 18 }}>
-      <div className="pageHead spread">
-        <div>
-          <h1>Buy me compute</h1>
-          <p>
-            A support page and a widget for your own site. People who like what you make can buy you the work
-            rather than the coffee — an overnight run, a night of batch jobs — and it lands in your basin.
-          </p>
+      <section className="tipHero">
+        <h1>Make the thing. Let people fuel the runs.</h1>
+        <p>
+          A page and a widget for your site, your bio and your last slide. People who like what you make buy you
+          the work — an overnight run, a night of batch jobs — instead of the coffee.
+        </p>
+        <div className="tipHeroActions">
+          <Link className="tipCta" href={`/c/${handleOk ? p.handle : ''}`}>See your page</Link>
+          <button
+            type="button"
+            className="pillBtn"
+            onClick={() => copy(`${origin.replace(/\/+$/, '')}/c/${p.handle}`, 'hero')}
+            disabled={!handleOk}
+          >
+            {copied === 'hero' ? 'Copied' : 'Copy your link'}
+          </button>
+          <label className="tipCheck">
+            <input
+              type="checkbox"
+              checked={p.enabled}
+              onChange={(e) => set({ enabled: e.target.checked })}
+              className="check"
+            />
+            Page is {p.enabled ? 'live' : 'off'}
+          </label>
         </div>
-        <label className="row" style={{ gap: 8, margin: 0 }}>
-          <input
-            type="checkbox"
-            checked={p.enabled}
-            onChange={(e) => set({ enabled: e.target.checked })}
-            className="check"
-          />
-          <span style={{ fontWeight: 600, color: 'var(--ink-0)' }}>Page is {p.enabled ? 'live' : 'off'}</span>
-        </label>
-      </div>
+      </section>
+
+      <section className="tipSheet">
+        <h2>Support, your way</h2>
+        <p>Take one-off gifts, keep monthly supporters, or borrow somebody’s spare compute. All from one page.</p>
+        <div className="tipSheetGrid">
+          <div className="tipSheetItem">
+            <h3>One-off gifts</h3>
+            <div className="tipSheetFig num">{usd(unitCostUsd('tide', 'anthropic:workhorse'))}</div>
+            <p>buys {unitPhrase('tide', 1)} — {UNITS.find((u) => u.id === 'tide')!.buys}. Cups and spring tides either side of it.</p>
+          </div>
+          <div className="tipSheetItem">
+            <h3>Monthly supporters</h3>
+            <div className="tipSheetFig num">{t.monthlySupporters}</div>
+            <p>
+              {t.monthlySupporters > 0
+                ? `promising ${describeTokens(t.monthlyTokens)} a month. They set up the repeat on your payment link.`
+                : 'so far. Supporters can tick “make this monthly”; the repeat runs on your own payment link.'}
+            </p>
+          </div>
+          <div className="tipSheetItem">
+            <h3>Borrowed capacity</h3>
+            <div className="tipSheetFig num">{p.pledges.filter((x) => x.kind === 'capacity' && x.state === 'active').length}</div>
+            <p>open windows lent from other people’s keys and boxes. Capped, time-boxed, and never a personal seat.</p>
+          </div>
+        </div>
+      </section>
 
       <div className="grid cols2" style={{ alignItems: 'start' }}>
         <div className="stackv" style={{ gap: 14 }}>
@@ -187,7 +244,7 @@ export default function SupportPage() {
             <div className="hint">{fmtTokens(t.redeemedTokens)} spent</div>
           </div>
           <div>
-            <div className="sectionLabel">Awaiting payment</div>
+            <div className="sectionLabel">Awaiting confirmation</div>
             <div className="num" style={{ fontSize: 25 }}>{fmtTokens(t.pendingTokens)}</div>
             <div className="hint">a promise is not capacity</div>
           </div>
@@ -207,9 +264,14 @@ export default function SupportPage() {
               <div className="runRow" key={x.id}>
                 <div>
                   <div className="runTitle">
-                    {x.supporterName} · {describeTokens(x.tokens)}
+                    {x.supporterName} · {unitPhrase(x.unitId, x.count)}
+                    {x.monthly ? <span className="feedMonthly" style={{ marginLeft: 6 }}>monthly</span> : null}
                   </div>
-                  {x.message ? <div className="hint">“{x.message}”</div> : null}
+                  {x.message ? (
+                    <div className="hint">
+                      “{x.message}”{x.privateMessage ? ' — private, only you see this' : ''}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
                   <button type="button" className="tiny primary" onClick={() => decide(x, 'active')}>Confirm</button>
@@ -217,6 +279,51 @@ export default function SupportPage() {
                 </div>
               </div>
             ))}
+          </section>
+        ) : null}
+
+        {confirmed.length > 0 ? (
+          <section className="panel">
+            <h2>Say thanks</h2>
+            <p className="hint" style={{ marginTop: 4 }}>
+              Your reply shows under their note on your wall. Private notes stay private; your reply does not.
+            </p>
+            {confirmed.slice(0, 12).map((x) => {
+              const draft = drafts[x.id] ?? x.reply ?? '';
+              return (
+                <div className="runRow" key={x.id} style={{ display: 'block' }}>
+                  <div className="runTitle">
+                    {x.supporterName} {x.kind === 'capacity' ? 'lent' : 'bought'} {unitPhrase(x.unitId, x.count)}
+                    {x.monthly ? <span className="feedMonthly" style={{ marginLeft: 6 }}>monthly</span> : null}
+                  </div>
+                  {x.message ? (
+                    <div className="hint">“{x.message}”{x.privateMessage ? ' — private' : ''}</div>
+                  ) : null}
+                  <div className="thanksRow">
+                    <label htmlFor={`thanks-${x.id}`} className="srOnly">Reply to {x.supporterName}</label>
+                    <input
+                      id={`thanks-${x.id}`}
+                      type="text"
+                      maxLength={MAX_REPLY}
+                      placeholder={`Thanks, ${firstName(x.supporterName)}!`}
+                      value={draft}
+                      onChange={(e) => setDrafts((d) => ({ ...d, [x.id]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') thank(x);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="tiny primary"
+                      disabled={draft.trim() === (x.reply ?? '').trim()}
+                      onClick={() => thank(x)}
+                    >
+                      {x.reply ? 'Update' : 'Reply'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </section>
         ) : null}
 

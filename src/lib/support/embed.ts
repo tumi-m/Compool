@@ -36,10 +36,12 @@ export const EMBED_WIDTH: Record<EmbedVariant, number> = { button: 236, card: 34
  * rather than guessed. A guessed height clips the Give button, which makes the
  * whole widget decorative.
  */
-const H_BASE = 372;        // header, units, count row, button
-const H_GOAL = 64;         // goal label, bar, remaining line
-const H_SUPPORTERS = 186;  // heading, scroller, totals line
-const H_WALL_EXTRA = 48;   // the wall variant's taller scroller
+// Measured at 340px wide against a full wall of long notes with replies, plus
+// 26px on the base so a display name that wraps to a second line still fits.
+const H_BASE = 360;        // header, unit tabs, count chips, button, fine print
+const H_GOAL = 78;         // goal label, bar, remaining line
+const H_SUPPORTERS = 218;  // heading and the capped feed
+const H_WALL_EXTRA = 68;   // the wall variant's taller feed
 
 export function embedHeight(o: EmbedOptions): number {
   if (o.variant === 'button') return 48;

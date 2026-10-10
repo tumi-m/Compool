@@ -1,16 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import { UNITS, describeTokens, unitCostUsd, type UnitId } from '@/lib/support/units';
-import { goalProgress, type Pledge, type Goal } from '@/lib/support/pledge';
+import { UNITS, describeTokens, unit, unitCostUsd, unitPhrase, type UnitId } from '@/lib/support/units';
+import { MAX_COUNT, clampCount, goalProgress, wallEntries, type Goal, type Pledge, type WallEntry } from '@/lib/support/pledge';
 import type { EmbedVariant } from '@/lib/support/embed';
-import { relative, tokens as fmtTokens, usd } from '@/lib/format';
+import { relative, usd } from '@/lib/format';
+
+/** Quotes are at the going rate for a capable model, from the ledger's own book. */
+const QUOTE_MODEL = 'anthropic:workhorse';
+const QUICK = [1, 3, 5];
+
+export interface PledgeChoice {
+  unitId: UnitId;
+  count: number;
+  name: string;
+  message: string;
+  monthly: boolean;
+  privateMessage: boolean;
+}
+
+export const firstName = (displayName: string) => displayName.trim().split(/\s+/)[0] || displayName;
 
 /**
  * The widget, used identically by the public page and by the embed that lives on
  * a creator's own site. One component, so what a supporter sees on a blog is
  * exactly what the creator previewed — a widget that drifts from its preview is
  * a widget nobody trusts.
+ *
+ * Without an `onPledge` there is nowhere to record anything (the embed, the
+ * preview), so the button takes the supporter to the full page with their
+ * choice carried over, instead of thanking them for a pledge that went nowhere.
  */
 export function SupportWidget({
   handle,
@@ -25,6 +44,7 @@ export function SupportWidget({
   now = Date.now(),
   onPledge,
   compact = false,
+  initial,
 }: {
   handle: string;
   displayName: string;
@@ -36,177 +56,285 @@ export function SupportWidget({
   showSupporters?: boolean;
   showGoal?: boolean;
   now?: number;
-  onPledge?: (unitId: UnitId, count: number, name: string, message: string) => void;
+  onPledge?: (choice: PledgeChoice) => void;
   compact?: boolean;
+  initial?: { unitId: UnitId; count: number };
 }) {
-  const [picked, setPicked] = useState<UnitId>('tide');
-  const [count, setCount] = useState(1);
+  const [picked, setPicked] = useState<UnitId>(initial?.unitId ?? 'tide');
+  const [count, setCount] = useState(initial ? clampCount(initial.count) : 1);
+  const [custom, setCustom] = useState(initial && !QUICK.includes(initial.count) ? String(clampCount(initial.count)) : '');
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+  const [monthly, setMonthly] = useState(false);
+  const [priv, setPriv] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const g = goalProgress(pledges, showGoal ? goal : null, now);
-  const wall = pledges
-    .filter((p) => p.state === 'active' || p.state === 'spent')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const pickedUnit = UNITS.find((u) => u.id === picked)!;
+  const first = firstName(displayName);
 
   if (variant === 'button') {
     return (
-      <a className="btn primary supportButton" href={`/c/${handle}`} target="_top" rel="noopener">
-        <CupMark />
-        Buy {displayName.split(' ')[0]} compute
+      <a className="supportButton" href={`/c/${handle}`} target="_blank" rel="noopener">
+        <span className="supportButtonCup"><CupMark size={20} /></span>
+        Buy {first} compute
       </a>
     );
   }
 
+  const g = goalProgress(pledges, showGoal ? goal : null, now);
+  const total = unitCostUsd(picked, QUOTE_MODEL) * count;
+  const fullPage = `/c/${handle}?unit=${picked}&n=${count}`;
+  const id = (k: string) => `${k}-${handle}`;
+
+  const give = () => {
+    onPledge?.({ unitId: picked, count, name: name.trim() || 'Someone', message: message.trim(), monthly, privateMessage: priv });
+    if (payLink) window.open(payLink, '_blank', 'noopener,noreferrer');
+    setSent(true);
+  };
+
+  const reset = () => {
+    setSent(false);
+    setMessage('');
+    setPriv(false);
+    setMonthly(false);
+  };
+
   return (
-    <div className={`supportWidget${compact ? ' compact' : ''}`}>
-      <div className="row" style={{ gap: 9, alignItems: 'flex-start', flexWrap: 'nowrap' }}>
-        <CupMark size={26} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <strong style={{ display: 'block', lineHeight: 1.3 }}>Buy {displayName} compute</strong>
-          {blurb ? <div className="hint" style={{ marginTop: 2 }}>{blurb}</div> : null}
+    <div className={`supportWidget${compact ? ' compact' : ''}`} data-variant={variant}>
+      <div className="tipHead">
+        <span className="tipCupBadge"><CupMark size={compact ? 20 : 24} /></span>
+        <div style={{ minWidth: 0 }}>
+          <h2 className="tipTitle">Buy {first} compute</h2>
+          {blurb ? <p className="tipBlurb">{blurb}</p> : null}
         </div>
       </div>
 
       {showGoal && goal ? (
-        <div style={{ marginTop: 12 }}>
-          <div className="row small" style={{ justifyContent: 'space-between', marginBottom: 4 }}>
-            <span className="muted">{goal.label}</span>
+        <div className="goalBlock">
+          <div className="goalTop">
+            <strong>{goal.label}</strong>
             <span className="num">{Math.round(g.fraction * 100)}%</span>
           </div>
-          <div className="meterBar">
-            <span style={{ width: `${Math.max(2, g.fraction * 100)}%` }} />
+          <div
+            className="goalBar"
+            role="progressbar"
+            aria-label={`Progress toward ${goal.label}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(g.fraction * 100)}
+          >
+            <span style={{ width: `${Math.max(3, g.fraction * 100)}%` }} />
           </div>
-          <div className="hint" style={{ marginTop: 4 }}>
-            {g.reached
-              ? `Funded — ${describeTokens(g.pledgedTokens)} given.`
-              : `${describeTokens(g.remaining)} to go.`}
+          <div className="hint" style={{ marginTop: 5 }}>
+            {g.reached ? `Funded — ${describeTokens(g.pledgedTokens)} given.` : `${describeTokens(g.remaining)} to go.`}
           </div>
         </div>
       ) : null}
 
       {sent ? (
-        <div className="notice" style={{ marginTop: 12 }} role="status">
-          <strong>Thank you.</strong>{' '}
-          {/* It used to say "your gift is on the wall" — but a cash pledge waits
+        <div className="tipThanks" role="status">
+          <span className="tipHeart"><HeartMark /></span>
+          <h3>Thank you{name.trim() ? `, ${name.trim()}` : ''}!</h3>
+          {/* It once said "your gift is on the wall" — but a cash pledge waits
               for the creator to confirm it, and does not appear until they do.
               Unconfirmed pledges stay off the public wall on purpose: otherwise
               anyone could put any name and message on somebody else's page. */}
-          {payLink
-            ? `Finish up on the payment page that just opened. Your name goes on the wall once ${displayName.split(' ')[0]} confirms it.`
-            : `Your pledge is with ${displayName.split(' ')[0]}. It goes on the wall once they confirm it.`}
+          <p>
+            {payLink
+              ? `Finish up on the payment page that just opened. Your name goes on the wall once ${first} confirms it.`
+              : `Your pledge is with ${first}. It goes on the wall once they confirm it.`}
+            {monthly ? ' Set the monthly payment up on their page too — nothing here can charge you.' : ''}
+          </p>
+          <button type="button" className="pillBtn" onClick={reset}>Give again</button>
         </div>
       ) : (
         <>
-          <fieldset style={{ marginTop: 12 }}>
-            <legend className="sectionLabel" style={{ padding: 0 }}>Give</legend>
-            <div className="unitRow">
-              {UNITS.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  className={`unitPick${picked === u.id ? ' on' : ''}`}
-                  aria-pressed={picked === u.id}
-                  onClick={() => setPicked(u.id)}
-                >
-                  <span className="unitName">{u.label}</span>
-                  <span className="unitBuys">{u.buys}</span>
-                  <span className="unitCost num">{usd(unitCostUsd(u.id, 'anthropic:workhorse'))}</span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <div className="unitTabs" role="group" aria-label="What to give">
+            {UNITS.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                className="unitTab"
+                aria-pressed={picked === u.id}
+                onClick={() => setPicked(u.id)}
+              >
+                <span className="unitTabName">{cap(u.label.replace(/^A /, ''))}</span>
+                <span className="unitTabCost num">{usd(unitCostUsd(u.id, QUOTE_MODEL))}</span>
+              </button>
+            ))}
+          </div>
+          <p className="unitNote">
+            {cap(unitPhrase(picked, 1))} buys {unit(picked).buys}.
+          </p>
 
-          <div className="row" style={{ gap: 8, marginTop: 10 }}>
-            <label htmlFor={`count-${handle}`} className="srOnly">How many</label>
-            <select
-              id={`count-${handle}`}
-              value={count}
-              onChange={(e) => setCount(Number(e.target.value))}
-              className="countSelect"
-            >
-              {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>×{n}</option>)}
-            </select>
-            <span className="hint" style={{ margin: 0, flex: 1 }}>
-              {describeTokens(pickedUnit.tokens * count)} ·{' '}
-              <span className="num">{usd(unitCostUsd(picked, 'anthropic:workhorse') * count)}</span>
-            </span>
+          <div className="qtyRow" role="group" aria-label="How many">
+            <span className="qtyCup"><CupMark size={26} /></span>
+            <span className="qtyTimes" aria-hidden="true">×</span>
+            {QUICK.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="qtyChip"
+                aria-pressed={custom === '' && count === n}
+                aria-label={`${n}`}
+                onClick={() => {
+                  setCustom('');
+                  setCount(n);
+                }}
+              >
+                {n}
+              </button>
+            ))}
+            <label htmlFor={id('qty')} className="srOnly">Another number, up to {MAX_COUNT}</label>
+            <input
+              id={id('qty')}
+              className="qtyInput"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_COUNT}
+              placeholder="10"
+              value={custom}
+              onChange={(e) => {
+                setCustom(e.target.value);
+                const n = Number(e.target.value);
+                if (e.target.value !== '' && Number.isFinite(n)) setCount(clampCount(n));
+                if (e.target.value === '') setCount(1);
+              }}
+            />
           </div>
 
-          {!compact ? (
+          {onPledge && !compact ? (
             <>
-              <div className="field" style={{ marginTop: 10, marginBottom: 8 }}>
-                <label htmlFor={`name-${handle}`}>Your name</label>
+              <div className="tipFields">
+                <label htmlFor={id('name')} className="srOnly">Your name</label>
                 <input
-                  id={`name-${handle}`}
+                  id={id('name')}
                   type="text"
                   value={name}
                   maxLength={40}
-                  placeholder="Someone from the talk"
+                  autoComplete="nickname"
+                  placeholder="Name or @yoursocial"
                   onChange={(e) => setName(e.target.value)}
                 />
-              </div>
-              <div className="field">
-                <label htmlFor={`msg-${handle}`}>A note, if you like</label>
-                <input
-                  id={`msg-${handle}`}
-                  type="text"
+                <label htmlFor={id('msg')} className="srOnly">A message</label>
+                <textarea
+                  id={id('msg')}
                   value={message}
-                  maxLength={140}
+                  maxLength={280}
+                  rows={3}
+                  placeholder="Say something nice…"
                   onChange={(e) => setMessage(e.target.value)}
                 />
+              </div>
+              <div className="tipChecks">
+                <label className="tipCheck">
+                  <input type="checkbox" className="check" checked={priv} onChange={(e) => setPriv(e.target.checked)} />
+                  Keep my message private
+                </label>
+                <label className="tipCheck">
+                  <input type="checkbox" className="check" checked={monthly} onChange={(e) => setMonthly(e.target.checked)} />
+                  Make this monthly
+                </label>
               </div>
             </>
           ) : null}
 
-          <button
-            type="button"
-            className="primary"
-            style={{ width: '100%', marginTop: 4 }}
-            onClick={() => {
-              onPledge?.(picked, count, name.trim() || 'Anonymous', message.trim());
-              if (payLink) window.open(payLink, '_blank', 'noopener,noreferrer');
-              setSent(true);
-            }}
-          >
-            {payLink ? 'Give' : 'Pledge'} {describeTokens(pickedUnit.tokens * count)}
-          </button>
-
-          {!payLink ? (
-            <div className="hint" style={{ marginTop: 7 }}>
-              {displayName} has not connected a payment link yet, so this records a pledge on the wall rather
-              than taking a payment.
-            </div>
-          ) : null}
+          {onPledge ? (
+            <button type="button" className="tipCta" onClick={give}>
+              {payLink ? 'Support' : 'Pledge'} <span className="num">{usd(total)}</span>
+              {monthly ? <span className="tipCtaPer">/ month</span> : null}
+            </button>
+          ) : (
+            <a className="tipCta" href={fullPage} target="_blank" rel="noopener">
+              Support <span className="num">{usd(total)}</span>
+            </a>
+          )}
+          <p className="tipFine">
+            {cap(unitPhrase(picked, count))} · {payLink
+              ? `paid to ${first} directly — TIDEPOOL never touches the money.`
+              : `${first} has no payment link yet, so this records a pledge.`}
+          </p>
         </>
       )}
 
-      {showSupporters && wall.length > 0 ? (
-        <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-          <div className="sectionLabel">Recent supporters</div>
-          <div className="scroller" style={{ maxHeight: variant === 'wall' ? 152 : 104 }}>
-            {wall.slice(0, 20).map((p) => (
-              <div className="wallRow" key={p.id}>
-                <span className="wallAvatar" aria-hidden="true">{p.supporterName[0]?.toUpperCase() ?? '?'}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{p.supporterName}</strong>{' '}
-                  <span className="muted small">gave {describeTokens(p.tokens)}</span>
-                  {p.message ? <div className="hint wallNote">“{p.message}”</div> : null}
-                </span>
-                <span className="eventSeq">{relative(p.createdAt, now)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="hint" style={{ marginTop: 6 }}>
-            {g.supporters} {g.supporters === 1 ? 'supporter' : 'supporters'} ·{' '}
-            {fmtTokens(g.pledgedTokens)} given · {fmtTokens(g.remainingTokens)} still in the basin
-          </div>
+      {showSupporters ? (
+        <div className="tipFeed">
+          <SupporterFeed
+            entries={wallEntries(pledges)}
+            creator={first}
+            now={now}
+            limit={compact ? 6 : 20}
+            maxHeight={variant === 'wall' ? 236 : 168}
+          />
         </div>
       ) : null}
     </div>
   );
+}
+
+/**
+ * The wall: who gave, what, and what they said. It is handed WallEntry, not
+ * Pledge, so a private note is not even in its props.
+ */
+export function SupporterFeed({
+  entries,
+  creator,
+  now,
+  limit = 20,
+  maxHeight,
+  heading = 'Recent supporters',
+}: {
+  entries: WallEntry[];
+  creator: string;
+  now: number;
+  limit?: number;
+  maxHeight?: number;
+  heading?: string;
+}) {
+  return (
+    <>
+      <h3 className="tipFeedHead">{heading}</h3>
+      {entries.length === 0 ? (
+        <p className="feedEmpty">Nobody yet. The first one gets the top spot.</p>
+      ) : (
+        <ul className="feedList scroller" style={maxHeight ? { maxHeight } : undefined}>
+          {entries.slice(0, limit).map((e) => (
+            <li className="feedItem" key={e.id}>
+              <span className="feedAvatar" data-tone={tone(e.name)} aria-hidden="true">
+                {e.name.trim()[0]?.toUpperCase() ?? '?'}
+              </span>
+              <div className="feedBody">
+                <div className="feedLine">
+                  <span>
+                    <strong>{e.name}</strong> {e.verb} {unitPhrase(e.unitId, e.count)}
+                  </span>
+                  {e.monthly ? <span className="feedMonthly">monthly</span> : null}
+                  <span className="feedWhen">{relative(e.createdAt, now)}</span>
+                </div>
+                {e.message ? (
+                  <p className="feedNote">{e.message}</p>
+                ) : e.sentPrivately ? (
+                  <p className="feedPrivate"><LockMark /> Sent a private message</p>
+                ) : null}
+                {e.reply ? (
+                  <p className="feedReply"><strong>{creator}</strong> {e.reply}</p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A stable colour per name, so the same supporter looks the same everywhere. */
+function tone(name: string): number {
+  let h = 0;
+  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return Math.abs(h) % 4;
 }
 
 /** A cup, in the mark's own language: a vessel with a level in it. */
@@ -216,6 +344,26 @@ export function CupMark({ size = 22 }: { size?: number }) {
       <path d="M4 6h13v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V6Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M17 8h1.6a2.4 2.4 0 0 1 0 4.8H17" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M4.6 12.6h11.8V15a3.4 3.4 0 0 1-3.4 3.4H8a3.4 3.4 0 0 1-3.4-3.4v-2.4Z" fill="currentColor" opacity="0.85" />
+    </svg>
+  );
+}
+
+function HeartMark() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9a4.6 4.6 0 0 1 6.5 6.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function LockMark() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }

@@ -43,6 +43,25 @@ export interface Pledge {
   expiresAt: string | null;
   state: PledgeState;
   createdAt: string;
+  /**
+   * The supporter means to give this every month. TIDEPOOL cannot charge
+   * anyone, so this is a stated intent the creator sees and counts — the
+   * recurring payment itself is set up on the creator's own link. Optional,
+   * like the two below, so pledges saved before they existed still load.
+   */
+  monthly?: boolean;
+  /** The note is for the creator alone. The wall says one was sent, never what it says. */
+  privateMessage?: boolean;
+  /** The creator's thank-you, shown under the supporter's note. */
+  reply?: string | null;
+}
+
+/** Past this a typo, not generosity, is the likelier explanation. */
+export const MAX_COUNT = 100;
+export const MAX_REPLY = 280;
+
+export function clampCount(n: number): number {
+  return Number.isFinite(n) ? Math.min(MAX_COUNT, Math.max(1, Math.floor(n))) : 1;
 }
 
 export class GiftError extends Error {
@@ -80,7 +99,8 @@ export function newPledge(
 ): Pledge {
   return {
     ...input,
-    tokens: unit(input.unitId).tokens * Math.max(1, Math.floor(input.count)),
+    count: clampCount(input.count),
+    tokens: unit(input.unitId).tokens * clampCount(input.count),
     redeemedTokens: 0,
     state: input.state ?? (input.kind === 'cash' ? 'pending' : 'active'),
   };
@@ -95,6 +115,9 @@ export interface SupportTotals {
   remainingTokens: number;
   /** Pledges that have been promised but not yet confirmed as paid. */
   pendingTokens: number;
+  /** Confirmed supporters who said they will give every month, and how much. */
+  monthlySupporters: number;
+  monthlyTokens: number;
 }
 
 const COUNTS = (p: Pledge) => p.state === 'active' || p.state === 'spent';
@@ -103,12 +126,15 @@ export function totals(pledges: Pledge[], now = Date.now()): SupportTotals {
   const live = pledges.filter((p) => COUNTS(p) && !isExpired(p, now));
   const pledged = live.reduce((a, p) => a + p.tokens, 0);
   const redeemed = live.reduce((a, p) => a + Math.min(p.tokens, p.redeemedTokens), 0);
+  const monthly = live.filter((p) => p.monthly);
   return {
     supporters: new Set(live.map((p) => p.supporterName.trim().toLowerCase())).size,
     pledgedTokens: pledged,
     redeemedTokens: redeemed,
     remainingTokens: Math.max(0, pledged - redeemed),
     pendingTokens: pledges.filter((p) => p.state === 'pending').reduce((a, p) => a + p.tokens, 0),
+    monthlySupporters: new Set(monthly.map((p) => p.supporterName.trim().toLowerCase())).size,
+    monthlyTokens: monthly.reduce((a, p) => a + p.tokens, 0),
   };
 }
 
@@ -125,6 +151,49 @@ export function settlePledges(pledges: Pledge[], now = Date.now()): Pledge[] {
     if (p.state === 'active' && p.redeemedTokens >= p.tokens) return { ...p, state: 'spent' };
     return p;
   });
+}
+
+// ---- the public wall --------------------------------------------------------
+
+export interface WallEntry {
+  id: string;
+  name: string;
+  /** "bought" for money, "lent" for capacity — they are different gifts. */
+  verb: 'bought' | 'lent';
+  unitId: UnitId;
+  count: number;
+  /** Null when there was no note, and null when the note was private. */
+  message: string | null;
+  sentPrivately: boolean;
+  reply: string | null;
+  monthly: boolean;
+  createdAt: string;
+}
+
+/**
+ * What the public may see of a pledge, and nothing more. Every surface that
+ * shows supporters — the page, the embed on somebody else's site — renders
+ * from this, so a private note cannot leak through a component that forgot
+ * to check the flag: the text is simply not in what it was handed.
+ * Unconfirmed pledges never appear, for the reason the widget gives: otherwise
+ * anyone could put any name and message on somebody else's page.
+ */
+export function wallEntries(pledges: Pledge[]): WallEntry[] {
+  return pledges
+    .filter(COUNTS)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((p) => ({
+      id: p.id,
+      name: p.supporterName,
+      verb: p.kind === 'capacity' ? 'lent' : 'bought',
+      unitId: p.unitId,
+      count: p.count,
+      message: p.privateMessage ? null : p.message,
+      sentPrivately: Boolean(p.privateMessage && p.message),
+      reply: p.reply?.trim() ? p.reply.trim().slice(0, MAX_REPLY) : null,
+      monthly: Boolean(p.monthly),
+      createdAt: p.createdAt,
+    }));
 }
 
 // ---- goals ----------------------------------------------------------------

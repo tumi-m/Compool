@@ -67,6 +67,12 @@ export function tokensToUnits(tokens: number): { id: UnitId; count: number }[] {
   return out;
 }
 
+/** "a tide", "3 tides", "a spring tide" — one unit, counted. */
+export function unitPhrase(id: UnitId, count: number): string {
+  const name = unit(id).label.toLowerCase().replace(/^a /, '');
+  return count === 1 ? `a ${name}` : `${count} ${name}s`;
+}
+
 /** "3 tides and a cup" — how a supporter would say it out loud. */
 export function describeTokens(tokens: number): string {
   const parts = tokensToUnits(tokens);

@@ -283,6 +283,25 @@ quoted and what the creator is charged cannot drift apart.
 - **Never a personal seat.** §3 holds at the gifting boundary exactly as it holds
   everywhere else, and a support page is precisely where someone would try.
 
+### The page
+
+It reads like a tip jar, not a dashboard: a cover drawn from the creator's own
+capacity field, a face and a name, the jar beside the supporter feed, and the
+plumbing explained underneath for anyone who asks.
+
+- **Pick, count, say something.** Cup, tide or spring tide; ×1, ×3, ×5 or any
+  number up to 100; a name and a note.
+- **Monthly.** A supporter can mark a gift monthly. Nothing here can charge
+  anyone, so it is a stated intent the creator sees and counts — the repeat is
+  set up on the creator's own payment link.
+- **Private notes.** The wall says a note was sent and never what it says. Every
+  surface that shows supporters renders from `wallEntries()`, which drops the
+  text before a component ever sees it, so a widget that forgets to check the
+  flag still cannot leak it.
+- **Thank-yous.** The creator confirms a cash gift (unconfirmed pledges never
+  reach the wall — otherwise anyone could put any name on anybody's page) and can
+  reply; the reply shows under the supporter's note.
+
 ### The embed
 
 `/support` generates a snippet; `/embed/[handle]` renders it; `/c/[handle]` is the
@@ -302,8 +321,12 @@ full public page for a bio, a README or a talk's last slide.
   is somebody's capacity gone.
 - The **frame height is computed from the options the creator picked**, because a
   sandboxed cross-origin frame cannot resize itself and the only way to let it
-  would be a script on their page. Every configuration is verified to fit — a
-  clipped Give button makes the whole widget decorative.
+  would be a script on their page. A browser test loads every configuration
+  against a full wall of long notes and fails if anything, the button above all,
+  falls outside the frame the snippet gives it.
+- The embed has nowhere to record a pledge, so its button **hands the supporter
+  to the full page with their choice carried over** instead of thanking them for
+  a gift that went nowhere.
 
 ## Performance
 

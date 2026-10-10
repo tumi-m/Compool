@@ -50,6 +50,21 @@ describe.each([
     expect(ratio(t['on-accent'], t['accent-fill'])).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('puts the call-to-action words at 4.5:1 on its blue, resting and hovered', () => {
+    expect(ratio(t['on-cta'], t['cta'])).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(t['on-cta'], t['cta-hover'])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('keeps the call-to-action pill visible as a shape (3:1 on the page)', () => {
+    for (const g of ['paper', 'panel']) expect(ratio(t['cta'], t[g]), `--cta on --${g}`).toBeGreaterThanOrEqual(3);
+  });
+
+  it('puts avatar initials at 4.5:1 on every avatar tone', () => {
+    for (const tone of ['chip-ink', 'link', 'shallow-ink', 'coral-ink']) {
+      expect(ratio(t['panel'], t[tone]), `--panel on --${tone}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('keeps graphical fills at 3:1 against the page (WCAG 1.4.11)', () => {
     for (const fill of ['water', 'shallow', 'coral']) {
       for (const g of ['paper', 'panel']) {

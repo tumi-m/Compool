@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GiftError, assertGiftable, giftableSources, goalProgress, isExpired, newPledge, redeem,
-  settlePledges, totals, type Pledge,
+  GiftError, MAX_COUNT, MAX_REPLY, assertGiftable, clampCount, giftableSources, goalProgress, isExpired,
+  newPledge, redeem, settlePledges, totals, wallEntries, type Pledge,
 } from '@/lib/support/pledge';
-import { describeTokens, tokensToUnits, unit, unitCostUsd, UNITS } from '@/lib/support/units';
+import { describeTokens, tokensToUnits, unit, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
 import type { CapacitySource } from '@/lib/types';
 
 const NOW = Date.parse('2026-09-28T12:00:00Z');
@@ -193,5 +193,90 @@ describe('redeeming', () => {
     const unpaid = pledge({ id: 'c', kind: 'cash', sourceId: null, supporterUserId: null });
     const { uncovered } = redeem([expired, unpaid], 10_000, NOW);
     expect(uncovered).toBe(10_000);
+  });
+});
+
+describe('the public wall', () => {
+  const cash = (over: Partial<Pledge> = {}) =>
+    pledge({ kind: 'cash', sourceId: null, supporterUserId: null, state: 'active', ...over });
+
+  it('never carries the text of a private note', () => {
+    const [e] = wallEntries([cash({ message: 'my address is 4 Elm St', privateMessage: true })]);
+    expect(e.message).toBeNull();
+    expect(e.sentPrivately).toBe(true);
+    expect(JSON.stringify(e)).not.toContain('Elm');
+  });
+
+  it('does not claim a private note was sent when there was none', () => {
+    const [e] = wallEntries([cash({ message: null, privateMessage: true })]);
+    expect(e.sentPrivately).toBe(false);
+  });
+
+  it('keeps unconfirmed and declined pledges off it', () => {
+    const shown = wallEntries([
+      cash({ id: 'a', state: 'pending' }),
+      cash({ id: 'b', state: 'declined' }),
+      cash({ id: 'c', state: 'active' }),
+    ]);
+    expect(shown.map((e) => e.id)).toEqual(['c']);
+  });
+
+  it('says bought for money and lent for capacity', () => {
+    expect(wallEntries([cash()])[0].verb).toBe('bought');
+    expect(wallEntries([pledge()])[0].verb).toBe('lent');
+  });
+
+  it('shows the newest first, with the creator’s thanks trimmed and capped', () => {
+    const shown = wallEntries([
+      cash({ id: 'old', createdAt: '2026-09-01T00:00:00Z', reply: `  ${'x'.repeat(400)}  ` }),
+      cash({ id: 'new', createdAt: '2026-09-20T00:00:00Z', reply: '   ' }),
+    ]);
+    expect(shown.map((e) => e.id)).toEqual(['new', 'old']);
+    expect(shown[0].reply).toBeNull();
+    expect(shown[1].reply).toHaveLength(MAX_REPLY);
+  });
+
+  it('loads a pledge saved before monthly and private notes existed', () => {
+    const legacy = { ...cash({ message: 'hi' }) } as Partial<Pledge>;
+    delete legacy.monthly;
+    delete legacy.privateMessage;
+    delete legacy.reply;
+    const [e] = wallEntries([legacy as Pledge]);
+    expect(e).toMatchObject({ message: 'hi', monthly: false, sentPrivately: false, reply: null });
+  });
+});
+
+describe('monthly supporters', () => {
+  it('counts confirmed monthly pledges, once per supporter', () => {
+    const t = totals(
+      [
+        pledge({ id: 'a', supporterName: 'Ada', monthly: true }),
+        pledge({ id: 'b', supporterName: 'ada ', monthly: true }),
+        pledge({ id: 'c', supporterName: 'Kwame' }),
+        pledge({ id: 'd', supporterName: 'Lin', monthly: true, kind: 'cash', sourceId: null }),
+      ],
+      NOW,
+    );
+    expect(t.monthlySupporters).toBe(1);
+    expect(t.monthlyTokens).toBe(2 * unit('tide').tokens);
+  });
+});
+
+describe('how many', () => {
+  it('clamps a custom count to something a person meant', () => {
+    expect(clampCount(0)).toBe(1);
+    expect(clampCount(-4)).toBe(1);
+    expect(clampCount(2.7)).toBe(2);
+    expect(clampCount(Number.NaN)).toBe(1);
+    expect(clampCount(10_000)).toBe(MAX_COUNT);
+    expect(pledge({ count: 10_000 }).tokens).toBe(MAX_COUNT * unit('tide').tokens);
+    expect(pledge({ count: 10_000 }).count).toBe(MAX_COUNT);
+  });
+
+  it('says a unit the way a person would', () => {
+    expect(unitPhrase('tide', 1)).toBe('a tide');
+    expect(unitPhrase('tide', 3)).toBe('3 tides');
+    expect(unitPhrase('spring', 1)).toBe('a spring tide');
+    expect(unitPhrase('cup', 5)).toBe('5 cups');
   });
 });
