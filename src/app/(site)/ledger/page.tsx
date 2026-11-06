@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useWorkspace } from '@/components/WorkspaceProvider';
 import { Stack } from '@/components/Stack';
+import { SettleFlow } from '@/components/motion/SettleFlow';
 import { findImbalances, positionsWithCarried, settle } from '@/lib/meter/ledger';
 import { priceBook } from '@/lib/meter/price-book';
 import { relative, usd } from '@/lib/format';
@@ -28,6 +29,7 @@ export default function LedgerPage() {
       </div>
 
       <div className={`notice ${imbalances.length ? 'stop' : ''}`}>
+        {imbalances.length === 0 ? <CheckDraw key={ws.ledger.length} /> : null}
         <strong>Double-entry invariant: {imbalances.length === 0 ? 'holding' : `${imbalances.length} broken`}.</strong>{' '}
         {ws.ledger.length / 2} events · {ws.ledger.length} entries. A drifting ledger is a product-ending bug,
         so this check runs after every metering test and on a schedule in production, not only here.
@@ -62,6 +64,8 @@ export default function LedgerPage() {
           {transfers.length === 0 ? (
             <p className="hint">Nothing to settle — everyone is square.</p>
           ) : (
+            <>
+            <SettleFlow transfers={transfers} name={name} />
             <table>
               <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col" className="n">Amount</th></tr></thead>
               <tbody>
@@ -74,6 +78,7 @@ export default function LedgerPage() {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </section>
 
@@ -95,7 +100,7 @@ export default function LedgerPage() {
                 </thead>
                 <tbody>
                   {ws.usage.slice(0, 12).map((u) => (
-                    <tr key={u.id}>
+                    <tr key={u.id} className="rowIn">
                       <td className="small">{relative(u.createdAt, now)}</td>
                       <td className="small">{u.model}{u.estimated ? <span className="badge shallow" style={{ marginLeft: 5 }}>est</span> : null}</td>
                       <td className="n">{u.inputTokens.toLocaleString()}</td>
@@ -110,5 +115,14 @@ export default function LedgerPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+/** Redrawn each time a new pair of entries lands and the books still balance. */
+function CheckDraw() {
+  return (
+    <svg className="checkDraw" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M3 8.5 6.5 12 13 4.5" pathLength={1} />
+    </svg>
   );
 }

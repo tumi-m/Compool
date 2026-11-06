@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Drain } from '@/components/motion/Drain';
 import { useWorkspace, ME } from '@/components/WorkspaceProvider';
 import { relative } from '@/lib/format';
+
+const MODES = ['off', 'offer', 'auto'] as const;
+/** A pairing code is good for ten minutes from when it is shown. */
+const CODE_TTL_MS = 10 * 60_000;
 
 const MODE_COPY = {
   off: 'This node never takes pool work. Recommend this to anyone in an organisation with a compliance function.',
@@ -19,6 +24,8 @@ const MODE_COPY = {
 export default function NodesPage() {
   const { ws, now, update } = useWorkspace();
   const [pairing, setPairing] = useState(false);
+  // When the current code was shown; it is good for ten minutes from then.
+  const [pairedAt, setPairedAt] = useState(0);
   const [code] = useState(() => 'TIDE-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase());
   const [copied, setCopied] = useState(false);
 
@@ -55,7 +62,14 @@ tidepool pair ${code}`;
             personal seat break your own stall without the credential ever leaving the device.
           </p>
         </div>
-        <button type="button" className="primary" onClick={() => setPairing((v) => !v)}>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            if (!pairing) setPairedAt(Date.now());
+            setPairing((v) => !v);
+          }}
+        >
           {pairing ? 'Close' : 'Pair a machine'}
         </button>
       </div>
@@ -74,8 +88,13 @@ tidepool pair ${code}`;
           <div className="row">
             <button type="button" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
             <span className="badge water">code {code}</span>
-            <span className="hint" style={{ margin: 0 }}>Expires in 10 minutes.</span>
+            <span className="hint" style={{ margin: 0 }}>
+              {now < pairedAt + CODE_TTL_MS
+                ? `Expires in ${Math.max(1, Math.ceil((pairedAt + CODE_TTL_MS - now) / 60_000))} min.`
+                : 'Expired — close this and pair again.'}
+            </span>
           </div>
+          <Drain from={pairedAt} to={pairedAt + CODE_TTL_MS} now={Math.max(now, pairedAt)} tone="shallow" />
           <div className="notice">
             <strong>What the node may not do, with no flag that enables it:</strong> read, copy, export or
             transmit a vendor CLI’s credential store; run work attributed to anyone else; or accept a dispatch
@@ -96,7 +115,11 @@ tidepool pair ${code}`;
                   <h3>{n.name}</h3>
                   <div className="hint">{n.platform} · seen {relative(n.lastSeenAt, now)}</div>
                 </div>
-                <span className={`badge ${n.status === 'online' ? 'water' : ''}`}>{n.status}</span>
+                <span className={`badge ${n.status === 'online' ? 'water' : ''}`}>
+                  {/* keyed on status: the ring goes out once, when it changes */}
+                  <span key={n.status} className="statusDot" data-s={n.status} aria-hidden="true" />
+                  {n.status}
+                </span>
               </div>
 
               <div>
@@ -114,12 +137,17 @@ tidepool pair ${code}`;
 
               <div>
                 <div className="sectionLabel">Unattended pool work</div>
-                <div className="row" style={{ gap: 6 }}>
-                  {(['off', 'offer', 'auto'] as const).map((m) => (
+                <div
+                  className="modeSeg"
+                  role="group"
+                  aria-label={`Unattended pool work on ${n.name}`}
+                  style={{ '--i': MODES.indexOf(n.poolMode) } as React.CSSProperties}
+                >
+                  {MODES.map((m) => (
                     <button
                       key={m}
                       type="button"
-                      className={`tiny${n.poolMode === m ? ' primary' : ''}`}
+                      className="modeSegBtn"
                       onClick={() => setMode(n.id, m)}
                       aria-pressed={n.poolMode === m}
                     >

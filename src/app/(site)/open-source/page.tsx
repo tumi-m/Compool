@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { INTEGRATIONS, ROLE_COPY, clientSnippet, type IntegrationRole } from '@/lib/integrations/catalog';
+import { ScrollSteps } from '@/components/motion/ScrollSteps';
 
 const ROLES: IntegrationRole[] = ['runtime', 'gateway', 'client'];
 
@@ -70,6 +71,17 @@ export default function OpenSourcePage() {
           configures a custom OpenAI-compatible provider — TIDEPOOL supplies the endpoint and the key, and makes
           no assumptions about anyone else’s config file.
         </p>
+        <ScrollSteps
+          label="A request goes from your client to the gateway, through the policy guard and the router, to a provider or your own box, and is metered into the ledger on the way back."
+          steps={[
+            { name: 'your client', note: 'OpenAI shape' },
+            { name: 'gateway', note: 'one endpoint, one key' },
+            { name: 'guard', note: 'personal seats never' },
+            { name: 'router', note: 'rung with headroom' },
+            { name: 'provider', note: 'or your own box' },
+            { name: 'ledger', note: 'metered on return' },
+          ]}
+        />
         <div className="field" style={{ maxWidth: 460 }}>
           <label htmlFor="origin">Your deployment</label>
           <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} />

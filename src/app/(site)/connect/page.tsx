@@ -140,7 +140,7 @@ export default function ConnectPage() {
       </div>
 
       {done ? (
-        <div className="notice">
+        <div className="notice landIn" key={done}>
           <strong>{done} connected.</strong> It is on the <Link href="/">pool page</Link> now, and available to
           the <Link href="/preload">preload queue</Link> tonight.
         </div>
@@ -179,7 +179,14 @@ export default function ConnectPage() {
               >
                 <div className="row" style={{ justifyContent: 'space-between' }}>
                   <span className={`badge class${c.cls}`}>class {c.cls}</span>
-                  {already ? <span className="badge water">connected</span> : null}
+                  {already ? (
+                    <span className="badge water landIn">
+                      <svg className="checkDraw" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M3 8.5 6.5 12 13 4.5" pathLength={1} />
+                      </svg>
+                      connected
+                    </span>
+                  ) : null}
                 </div>
                 <div style={{ fontWeight: 600, margin: '9px 0 4px' }}>{c.name}</div>
                 <div className="hint">{c.line}</div>

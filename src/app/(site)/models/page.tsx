@@ -7,6 +7,7 @@ import { TIER_COPY, TIER_ORDER, tierRank, type Tier } from '@/lib/ladder/rungs';
 import { fillFraction } from '@/lib/router/headroom';
 import { clientSnippet } from '@/lib/integrations/catalog';
 import { clockAt, pct } from '@/lib/format';
+import { useFlip } from '@/components/motion/useFlip';
 
 /**
  * The catalogue. A dense, searchable list of every rung with the provider that
@@ -48,6 +49,9 @@ export default function ModelsPage() {
       })
       .sort((a, b) => tierRank(a.rung.tier) - tierRank(b.rung.tier) || a.rung.name.localeCompare(b.rung.name));
   }, [ws.rungs, candidates, now, q, tier, openOnly]);
+
+ // Filtering slides the survivors up into the gaps instead of jumping them.
+  const rowsRef = useFlip<HTMLTableSectionElement>(rows.map((r) => r.rung.id).join(','));
 
   const availableCount = rows.filter((r) => r.sourceLabel && (r.fill === null || (r.fill ?? 0) > 0.03)).length;
 
@@ -106,12 +110,12 @@ export default function ModelsPage() {
               <th scope="col">Next tide</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody ref={rowsRef}>
             {rows.map(({ rung, fill, sourceLabel, resetAt, latency, connected }) => {
               const unlimited = sourceLabel !== null && fill === null;
               const out = sourceLabel !== null && fill !== null && fill !== undefined && fill <= 0.03;
               return (
-                <tr key={rung.id}>
+                <tr key={rung.id} data-flip={rung.id}>
                   <td>
                     <div style={{ fontWeight: 500 }}>{rung.name}</div>
                     {rung.note ? <div className="hint">{rung.note}</div> : null}
@@ -127,7 +131,7 @@ export default function ModelsPage() {
                   <td className="small">{rung.openWeight ? <span className="badge water">open</span> : <span className="badge">closed</span>}</td>
                   <td style={{ minWidth: 150 }}>
                     {sourceLabel === null ? (
-                      connected ? <span className="badge coral">out</span> : <span className="muted small">—</span>
+                      connected ? <span className="badge coral landIn">out</span> : <span className="muted small">—</span>
                     ) : unlimited ? (
                       <span className="badge water">always on</span>
                     ) : (

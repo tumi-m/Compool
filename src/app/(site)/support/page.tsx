@@ -12,6 +12,7 @@ import { MAX_REPLY, giftableSources, totals, type Pledge } from '@/lib/support/p
 import { useToast } from '@/components/Toaster';
 import { DEFAULT_UNIT, describeTokens, isUnitId, unit, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
 import { tokens as fmtTokens, usd } from '@/lib/format';
+import { Odometer } from '@/components/motion/Odometer';
 
 /** The creator's side: turn it on, say what it is for, take the snippet. */
 export default function SupportPage() {
@@ -134,7 +135,7 @@ export default function SupportPage() {
           </div>
           <div className="tipSheetItem">
             <h3>Monthly supporters</h3>
-            <div className="tipSheetFig num">{t.monthlySupporters}</div>
+            <div className="tipSheetFig num"><Odometer value={t.monthlySupporters} decimals={0} /></div>
             <p>
               {t.monthlySupporters > 0
                 ? `promising ${describeTokens(t.monthlyTokens)} a month. They set up the repeat on your payment link.`
@@ -143,7 +144,9 @@ export default function SupportPage() {
           </div>
           <div className="tipSheetItem">
             <h3>Borrowed capacity</h3>
-            <div className="tipSheetFig num">{p.pledges.filter((x) => x.kind === 'capacity' && x.state === 'active').length}</div>
+            <div className="tipSheetFig num">
+              <Odometer value={p.pledges.filter((x) => x.kind === 'capacity' && x.state === 'active').length} decimals={0} />
+            </div>
             <p>open windows lent from other people’s keys and boxes. Capped, time-boxed, and never a personal seat.</p>
           </div>
         </div>

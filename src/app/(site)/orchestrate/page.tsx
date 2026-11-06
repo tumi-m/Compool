@@ -7,6 +7,8 @@ import { estimateTokens, parseDump, priorityOf, tierFor, triage, type Idea } fro
 import { useToast } from '@/components/Toaster';
 import { TIER_COPY, type Tier } from '@/lib/ladder/rungs';
 import { tokens } from '@/lib/format';
+import { Odometer } from '@/components/motion/Odometer';
+import { useFlip } from '@/components/motion/useFlip';
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -24,6 +26,8 @@ export default function OrchestratePage() {
 
   const plan = useMemo(() => triage(ws.ideas, ws.rungs, ladderCtx), [ws.ideas, ws.rungs, ladderCtx]);
   const byId = useMemo(() => new Map(ws.ideas.map((i) => [i.id, i])), [ws.ideas]);
+  // Change an idea's impact and watch it climb past the ones it now outranks.
+  const planRows = useFlip<HTMLTableSectionElement>(plan.tasks.map((t) => t.ideaId).join(','));
 
   /** Thirty ideas arrive at once, so intake takes them thirty at a time. */
   const capture = () => {
@@ -220,13 +224,13 @@ export default function OrchestratePage() {
                   <th scope="col" />
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={planRows}>
                 {plan.tasks.map((t) => {
                   const idea = byId.get(t.ideaId);
                   if (!idea) return null;
                   const slot = SLOT_COPY[t.slot];
                   return (
-                    <tr key={t.ideaId}>
+                    <tr key={t.ideaId} data-flip={t.ideaId} className="rowIn">
                       <td className="n">{t.order}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{idea.text}</div>
@@ -247,12 +251,13 @@ export default function OrchestratePage() {
                           </select>
                         </td>
                       ))}
-                      <td className="n">{priorityOf(idea)}</td>
+                      <td className="n"><Odometer value={priorityOf(idea)} decimals={2} className="num" /></td>
                       <td className="small">
                         <span className="badge">{TIER_COPY[t.tier].label}</span>
                         {t.degraded ? <div className="hint">will run lower and be reworked</div> : null}
                       </td>
-                      <td><span className={`badge ${slot.badge}`}>{slot.label}</span></td>
+                      {/* keyed on the slot, so a change of slot lands visibly */}
+                      <td><span key={t.slot} className={`badge ${slot.badge} landIn`}>{slot.label}</span></td>
                       <td>
                         <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
                           <button

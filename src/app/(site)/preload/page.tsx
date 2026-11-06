@@ -18,6 +18,7 @@ import {
 } from '@/lib/preload/schedule';
 import { clockAt, duration, pct, tokens, usd, whenAt, zoneName } from '@/lib/format';
 import { TideClock } from '@/components/motion/TideClock';
+import { Drain } from '@/components/motion/Drain';
 import { useToast } from '@/components/Toaster';
 import { PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
 
@@ -296,18 +297,22 @@ export default function PreloadPage() {
                       <td>
                         {d.dispatch ? (
                           <>
-                            <span className="badge water">ready</span>
+                            <span className="badge water landIn" key="ready">ready</span>
                             <div className="hint">{src?.label} · {pct(d.fillFraction)} full</div>
                           </>
                         ) : (
                           <>
-                            <span className={`badge ${d.hold === 'disabled' ? '' : 'shallow'}`}>
+                            <span key={d.hold ?? 'hold'} className={`badge landIn ${d.hold === 'disabled' ? '' : 'shallow'}`}>
                               {d.hold === 'window_closed' ? 'waiting' : d.hold?.replace(/_/g, ' ')}
                             </span>
                             <div className="hint">
                               {d.hold ? HOLD_COPY[d.hold] : ''}
                               {d.msUntilWindow ? ` ${duration(d.msUntilWindow)} to go.` : ''}
                             </div>
+                            {d.msUntilWindow ? (
+                              // The last day before the window, running out.
+                              <Drain from={now + d.msUntilWindow - 86_400_000} to={now + d.msUntilWindow} now={now} />
+                            ) : null}
                           </>
                         )}
                         {item.lastRunAt ? (

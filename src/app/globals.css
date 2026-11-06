@@ -656,6 +656,10 @@ fieldset { border: 0; margin: 0; padding: 0; }
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    /* Without these a delayed animation still waits out its delay and then
+       pops — the sparkline's end dot did, 600ms after everything else. */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }
 
@@ -1382,7 +1386,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-top: -74px;
+  margin-top: -83px;
 }
 .tipAvatar {
   width: 104px;
@@ -1461,7 +1465,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
 @media (max-width: 640px) {
   .tipCover { height: 132px; }
   .tipAvatar { width: 88px; height: 88px; font-size: 34px; }
-  .tipProfile { margin-top: -64px; }
+  .tipProfile { margin-top: -72px; }
   .supportWidget { padding: 18px; }
   .tipCard { padding: 18px; }
 }
@@ -1713,6 +1717,269 @@ label.row:has(.check) { cursor: pointer; }
 @media (max-width: 640px) {
   .toaster { left: 12px; right: 12px; bottom: 12px; width: auto; }
 }
+
+/* ---- motion, round two ------------------------------------------------------
+   Same rule as the first round: each of these shows a value arriving or
+   changing, plays once when it does, and is still otherwise. The global
+   reduced-motion rule stops every one of them; the scroll-driven ones and the
+   time drains also sit behind no-preference, because "stopped" for those has
+   to mean "drawn at the current value", not "jumped to the end". */
+
+/* Bars grow to their value on arrival instead of appearing at it. */
+.meterBar > span,
+.goalBar > span { transform-origin: left center; animation: growX 760ms var(--ease-settle) both; }
+@keyframes growX { from { transform: scaleX(0); } }
+
+/* New rows slide in; rows that were already there stay put — React keys mean
+   only a row that mounts gets the animation. */
+.rowIn { animation: slideIn 260ms var(--ease-out) both; }
+/* A badge whose meaning just changed (keyed on it) lands rather than swaps. */
+.landIn { animation: landIn 380ms var(--ease-settle) both; }
+@keyframes landIn {
+  from { transform: scale(0.82); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* A tick that draws itself: the books balanced, a source connected. */
+.checkDraw { flex: none; vertical-align: -2px; margin-right: 6px; overflow: visible; }
+.badge .checkDraw { margin-right: 0; }
+.checkDraw path {
+  fill: none;
+  stroke: var(--link);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  animation: tickDraw 520ms var(--ease-out) 120ms both;
+}
+@keyframes tickDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Time running out (see Drain). The static bar is the current value; the
+   animation, where motion is allowed, carries it down to empty on its own. */
+.drain {
+  display: block;
+  height: 5px;
+  margin-top: 6px;
+  max-width: 220px;
+  border-radius: 999px;
+  background: var(--stripe);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.drainFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--water);
+  transform-origin: left center;
+  transform: scaleX(var(--left, 1));
+}
+.drain[data-tone='shallow'] .drainFill { background: var(--shallow); }
+.drain[data-tone='coral'] .drainFill { background: var(--coral); }
+@media (prefers-reduced-motion: no-preference) {
+  .drainFill { animation-name: drainX; animation-timing-function: linear; animation-fill-mode: both; }
+}
+@keyframes drainX { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* A node's status: the ring goes out once, when it changes (keyed). */
+.statusDot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-2);
+}
+.statusDot[data-s='online'] { background: var(--water); }
+.statusDot::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0;
+  animation: statusRing 900ms var(--ease-out) both;
+}
+@keyframes statusRing {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(3.2); opacity: 0; }
+}
+
+/* off · offer · auto, with the choice sliding to where it now is. */
+.modeSeg {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(64px, 1fr));
+  padding: 3px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.modeSeg::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: 999px;
+  background: var(--accent-fill);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform 420ms var(--ease-settle);
+}
+.modeSegBtn {
+  position: relative;
+  z-index: 1;
+  min-height: 30px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-1);
+  transition: color 220ms var(--ease-out);
+}
+.modeSegBtn:hover:not(:disabled) { background: transparent; border-color: transparent; color: var(--ink-0); }
+.modeSegBtn[aria-pressed='true'],
+.modeSegBtn[aria-pressed='true']:hover:not(:disabled) { color: var(--on-accent); font-weight: 600; }
+
+/* Settle up: payers left, payees right, a curve as thick as the amount that
+   draws itself, then coins along it — one per third of the largest debt. */
+.settleFlow { display: block; width: 100%; height: auto; margin: 8px 0 10px; overflow: visible; }
+.settleLink {
+  fill: none;
+  stroke: var(--water);
+  stroke-linecap: round;
+  opacity: 0.8;
+  stroke-dasharray: 1;
+  animation: tickDraw 900ms var(--ease-out) calc(var(--i, 0) * 160ms) both;
+}
+.settleCoin {
+  fill: var(--shallow);
+  stroke: var(--panel);
+  stroke-width: 1.2;
+  offset-rotate: 0deg;
+  opacity: 0;
+  animation: coinRun 1200ms cubic-bezier(0.45, 0, 0.55, 1) calc(900ms + var(--i, 0) * 160ms + var(--c, 0) * 240ms) both;
+}
+@keyframes coinRun {
+  0% { offset-distance: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.settleAmount { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: var(--ink-0); animation: landIn 380ms var(--ease-settle) calc(700ms + var(--i, 0) * 160ms) both; transform-box: fill-box; transform-origin: center; }
+.settleNode { animation: landIn 380ms var(--ease-settle) both; transform-box: fill-box; transform-origin: center; }
+.settleNode circle { fill: var(--panel); stroke-width: 2; stroke: var(--coral-ink); }
+.settleNode[data-side='get'] circle { stroke: var(--link); }
+.settleInitial { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink-0); }
+.settleName { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-1); }
+
+/* A sequence that plays as it is read (see ScrollSteps). Static, all lit, by
+   default; scroll-driven only where the browser and the reader allow it. */
+.scrollSteps { margin: 6px 0 18px; max-width: 760px; view-timeline: --steps block; }
+.scrollSteps svg { display: block; width: 100%; height: auto; overflow: visible; }
+.stepsTrack { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+.stepsDone { stroke: var(--water); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.stepsStage circle { fill: var(--water); stroke: var(--panel); stroke-width: 3; }
+.stepsName { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: var(--ink-0); }
+.stepsNote { font-family: var(--sans); font-size: 10.5px; fill: var(--ink-1); }
+.stepsMarker { fill: var(--ink-0); opacity: 0; }
+@keyframes stepsDone { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes stepsMarker { from { transform: translateX(0); opacity: 1; } to { transform: translateX(var(--travel)); opacity: 1; } }
+@keyframes stepsOn {
+  from { fill: var(--panel); stroke: var(--line); }
+  to { fill: var(--water); stroke: var(--panel); }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .stepsDone { animation: stepsDone linear both; animation-timeline: --steps; animation-range: cover 20% cover 65%; }
+    .stepsMarker { animation: stepsMarker linear both; animation-timeline: --steps; animation-range: cover 20% cover 65%; }
+    .stepsStage circle {
+      animation: stepsOn linear both;
+      animation-timeline: --steps;
+      animation-range: cover calc(var(--at) - 1%) cover calc(var(--at) + 1%);
+    }
+  }
+}
+
+/* The creator's goal, as a ring round their face. */
+.tipAvatarWrap { position: relative; display: grid; place-items: center; width: 122px; height: 122px; }
+.tipAvatarWrap .tipAvatar { position: relative; z-index: 1; }
+.goalRing { position: absolute; inset: 0; z-index: 2; overflow: visible; pointer-events: none; }
+.goalRingTrack { stroke: var(--line); }
+.goalRingFill {
+  stroke: var(--water);
+  transition: stroke-dashoffset 700ms var(--ease-settle);
+  animation: ringIn 1300ms var(--ease-settle) 250ms both;
+}
+@keyframes ringIn { from { stroke-dashoffset: var(--c); } }
+@media (max-width: 640px) {
+  .tipAvatarWrap { width: 104px; height: 104px; }
+  .tipAvatarWrap .goalRing { width: 104px; height: 104px; }
+}
+
+/* Steam over the cup: a puff each time the count changes, more for more. */
+.qtyCupWrap { position: relative; display: inline-grid; place-items: center; }
+.steam { position: absolute; left: 50%; bottom: 82%; width: 0; height: 0; pointer-events: none; }
+.steam i {
+  position: absolute;
+  bottom: 0;
+  width: 6px;
+  height: 15px;
+  border-radius: 50%;
+  border-left: 2px solid var(--ink-2);
+  opacity: 0;
+  animation: steamUp 1500ms var(--ease-out) both;
+}
+.steam i:nth-child(1) { left: -9px; }
+.steam i:nth-child(2) { left: -2px; animation-delay: 170ms; }
+.steam i:nth-child(3) { left: 5px; animation-delay: 340ms; }
+.steam[data-level='1'] i:nth-child(n + 2),
+.steam[data-level='2'] i:nth-child(3) { display: none; }
+@keyframes steamUp {
+  0% { opacity: 0; transform: translateY(4px) scaleY(0.6); }
+  30% { opacity: 0.75; }
+  100% { opacity: 0; transform: translateY(-16px) scaleY(1.15); }
+}
+
+/* Thank you: a handful of hearts lift off the big one, once. */
+.tipHeart { position: relative; }
+.burst { position: absolute; left: 50%; top: 30%; width: 0; height: 0; pointer-events: none; }
+.burst i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: var(--coral);
+  clip-path: path('M4.5 8.6 1 5.2A2.1 2.1 0 0 1 4.1 2.2l.4.4.4-.4A2.1 2.1 0 0 1 8 5.2Z');
+  opacity: 0;
+  animation: heartLift 1100ms var(--ease-out) calc(380ms + var(--d, 0ms)) both;
+}
+@keyframes heartLift {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), -46px) scale(1.15); }
+}
+
+/* A gift from the last minute glows once as it arrives on the wall. */
+.feedItem[data-fresh='true'] { animation: slideIn 220ms var(--ease-out) both, freshGlow 2400ms var(--ease-out) 200ms both; border-radius: 10px; }
+@keyframes freshGlow {
+  from { background: var(--cta-wash); box-shadow: 0 0 0 6px var(--cta-wash); }
+  to { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+
+/* The rolling total inside the yellow button keeps the button's own type. */
+.tipCta .odometer { font-family: inherit; font-weight: inherit; }
+
+/* Where you are: the current page's mark lands when it moves. */
+.nav a[aria-current='page'] { animation: navLand 420ms var(--ease-settle) both; }
+@keyframes navLand {
+  from { transform: scale(0.86); opacity: 0.4; }
+  to { transform: scale(1); opacity: 1; }
+}
+.navHere { animation: slideIn 260ms var(--ease-out) both; }
 
 /* The skip target takes focus without drawing a ring round the whole page. */
 main:focus { outline: none; }

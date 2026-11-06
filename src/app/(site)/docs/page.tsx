@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { register, freshness } from '@/lib/policy/register';
+import { ScrollSteps } from '@/components/motion/ScrollSteps';
 
 export const metadata = { title: 'Docs' };
 
@@ -38,6 +39,18 @@ export default function DocsPage() {
         register the guard consults on every dispatch. A source whose credential type has no policy entry cannot
         be dispatched to at all.
       </p>
+      <p>Every run takes the same path, in this order — scroll and it plays through:</p>
+      <ScrollSteps
+        label="A run is queued and admitted under budget, routed past the policy guard to the cheapest capable rung, reserves headroom, streams, is metered into two ledger entries, and is done when they sum to zero."
+        steps={[
+          { name: 'queued', note: 'admitted under budget' },
+          { name: 'routing', note: 'guard, cheapest rung' },
+          { name: 'reserved', note: 'headroom held' },
+          { name: 'streaming', note: 'tokens drawn' },
+          { name: 'metering', note: 'two ledger entries' },
+          { name: 'done', note: 'they sum to zero' },
+        ]}
+      />
       <div className="tableWrap">
         <table>
           <thead>
@@ -141,6 +154,14 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 1 * *
       <p>
         None of it is SMIL or a JavaScript timer, which means the single <code>prefers-reduced-motion</code>{' '}
         rule in the stylesheet stops all of it at once. Nothing animates while the system is idle.
+      </p>
+      <p>
+        The same rule covers the rest: bars grow to their value on arrival; settle-up draws who pays whom, as
+        thick as the amount, with coins along each curve; re-ranked ideas glide to their new place; a pairing
+        code and a preload window drain as their time runs out; a node’s status change rings once; the goal on
+        a support page is a ring drawn round the creator’s face, and the steam over the cup grows with the
+        count. The sequence above plays from your scroll position, not a clock — scroll back and it runs
+        backwards. The one animation driven from script, the reorder glide, checks reduced motion itself.
       </p>
 
       <h2>Buy me compute</h2>

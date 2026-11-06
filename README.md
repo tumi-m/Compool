@@ -229,9 +229,32 @@ Motion shows a value changing; that is its whole job.
 - Numbers roll rather than crossfade, because the direction of travel is information.
 - A basin's waterline moves only while a run is streaming against that source.
 - Task graph edges march only while the dependency they carry is running.
+- Bars grow to their value on arrival — headroom, goals, the plan's tier split.
+- **Ledger:** settle-up is drawn — payers left, payees right, a curve as thick as
+  the amount that draws itself, then one coin along it per third of the largest
+  debt. New usage rows slide in; the balance check redraws its tick each time a
+  new pair of entries lands and still sums to zero.
+- **Orchestrate:** change an idea's scores and its row glides past the ones it
+  now outranks, while its priority rolls to the new number.
+- **Models:** filtering slides the surviving rungs up into the gaps.
+- **Nodes:** a status change sends one ring out from the dot; the pool-mode
+  switch slides to the new choice; a pairing code drains over its ten minutes.
+- **Preload:** a held item's last day before its window drains as it approaches.
+- **Connect:** a newly connected source's badge lands with a tick that draws.
+- **Support:** steam over the cup grows with the count, the total rolls, the goal
+  is a ring drawn round the creator's face, a thank-you lifts a handful of hearts,
+  and a gift from the last minute glows once on the wall.
+- **Docs and Open source:** a run's path is a sequence that plays as you scroll
+  it — driven by a CSS scroll timeline, so it moves only while the reader does,
+  runs backwards when they scroll back, and ships no JavaScript.
 
-None of it is SMIL or a JS timer, so the single `prefers-reduced-motion` rule in
-the stylesheet stops all of it at once. Nothing animates while the system is idle.
+Only one animation is driven from script (the reorder glide), and it checks
+reduced motion itself. Everything else is CSS, so the single
+`prefers-reduced-motion` rule stops it — durations *and* delays, since a delayed
+animation otherwise still waits and then pops. Time drains and scroll sequences
+sit behind `no-preference` as well, because for them "stopped" has to mean
+"drawn at the current value", not "jumped to the end". Nothing loops while the
+system is idle. `test/e2e/motion.e2e.ts` holds all of that in a real browser.
 
 ## The five states
 

@@ -5,6 +5,8 @@ import { DEFAULT_UNIT, describeTokens, unit, unitCostUsd, unitPhrase, type UnitI
 import { MAX_COUNT, clampCount, goalProgress, wallEntries, type Goal, type Pledge, type WallEntry } from '@/lib/support/pledge';
 import type { EmbedVariant } from '@/lib/support/embed';
 import { relative, usd } from '@/lib/format';
+import { steamLevel } from '@/lib/motion';
+import { Odometer } from '@/components/motion/Odometer';
 
 /** Quotes are at the going rate for a capable model, from the ledger's own book. */
 const QUOTE_MODEL = 'anthropic:workhorse';
@@ -131,7 +133,12 @@ export function SupportWidget({
 
       {sent ? (
         <div className="tipThanks" role="status">
-          <span className="tipHeart"><HeartMark /></span>
+          <span className="tipHeart">
+            <HeartMark />
+            <span className="burst" aria-hidden="true">
+              {BURST.map((x, i) => <i key={i} style={{ '--x': `${x}px`, '--d': `${i * 70}ms` } as React.CSSProperties} />)}
+            </span>
+          </span>
           <h3>Thank you{name.trim() ? `, ${name.trim()}` : ''}!</h3>
           {/* It once said "your gift is on the wall" — but a cash pledge waits
               for the creator to confirm it, and does not appear until they do.
@@ -148,7 +155,13 @@ export function SupportWidget({
       ) : (
         <>
           <div className="qtyBox" role="group" aria-label={`How many ${unit(unitId).label.replace(/^A /, '').toLowerCase()}s`}>
-            <span className="qtyCup" aria-hidden="true">☕</span>
+            <span className="qtyCupWrap" aria-hidden="true">
+              <span className="qtyCup">☕</span>
+              {/* A puff for each change of count, more steam for more cups. */}
+              <span className="steam" key={count} data-level={steamLevel(count)}>
+                <i /><i /><i />
+              </span>
+            </span>
             <span className="qtyTimes" aria-hidden="true">×</span>
             {QUICK.map((n) => (
               <button
@@ -226,12 +239,12 @@ export function SupportWidget({
 
           {onPledge ? (
             <button type="button" className="tipCta" onClick={give}>
-              {payLink ? 'Support' : 'Pledge'} <span className="num">{usd(total)}</span>
+              {payLink ? 'Support' : 'Pledge'} <Odometer value={total} prefix="$" className="num" />
               {monthly ? <span className="tipCtaPer">/ month</span> : null}
             </button>
           ) : (
             <a className="tipCta" href={fullPage} target="_blank" rel="noopener">
-              Support <span className="num">{usd(total)}</span>
+              Support <Odometer value={total} prefix="$" className="num" />
             </a>
           )}
           <p className="tipFine">
@@ -284,7 +297,8 @@ export function SupporterFeed({
       ) : (
         <ul className="feedList scroller" style={maxHeight ? { maxHeight } : undefined}>
           {entries.slice(0, limit).map((e) => (
-            <li className="feedItem" key={e.id}>
+            // Gifts from the last minute glow once as they arrive.
+            <li className="feedItem" key={e.id} data-fresh={now - Date.parse(e.createdAt) < 60_000}>
               <span className="feedAvatar" data-tone={tone(e.name)} aria-hidden="true">
                 {e.name.trim()[0]?.toUpperCase() ?? '?'}
               </span>
@@ -312,6 +326,9 @@ export function SupporterFeed({
     </>
   );
 }
+
+/** Where each heart in the thank-you burst drifts to, left to right. */
+const BURST = [-34, -20, -8, 6, 18, 30];
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

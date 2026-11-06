@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useWorkspace, nextId } from '@/components/WorkspaceProvider';
 import { SupportWidget, SupporterFeed, firstName, type PledgeChoice } from '@/components/support/SupportWidget';
 import { CapacityField } from '@/components/motion/CapacityField';
+import { GoalRing } from '@/components/motion/GoalRing';
+import { Odometer } from '@/components/motion/Odometer';
 import { useToast } from '@/components/Toaster';
-import { newPledge, totals, wallEntries } from '@/lib/support/pledge';
+import { goalProgress, newPledge, totals, wallEntries } from '@/lib/support/pledge';
 import { DEFAULT_UNIT } from '@/lib/support/units';
 import { isValidHandle } from '@/lib/support/embed';
 
@@ -22,6 +24,7 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
   const profile = ws.support;
   const t = useMemo(() => totals(profile.pledges, now), [profile.pledges, now]);
   const entries = useMemo(() => wallEntries(profile.pledges), [profile.pledges]);
+  const goal = useMemo(() => goalProgress(profile.pledges, profile.goal, now), [profile.pledges, profile.goal, now]);
 
   // The embed hands a supporter over with their count in the query string, so
   // they finish what they started rather than picking it again.
@@ -110,11 +113,22 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
       </div>
 
       <header className="tipProfile">
-        <span className="tipAvatar" aria-hidden="true">{initials(profile.displayName)}</span>
+        <span className="tipAvatarWrap">
+          {profile.goal ? (
+            <GoalRing
+              fraction={goal.fraction}
+              label={`${Math.round(goal.fraction * 100)}% of ${profile.goal.label}`}
+            />
+          ) : null}
+          <span className="tipAvatar" aria-hidden="true">{initials(profile.displayName)}</span>
+        </span>
         <h1 className="tipName">{profile.displayName}</h1>
         <p className="tipBlurb">{profile.blurb}</p>
         <div className="tipMeta">
-          <span><strong className="num">{t.supporters}</strong> {t.supporters === 1 ? 'supporter' : 'supporters'}</span>
+          <span>
+            <strong><Odometer value={t.supporters} decimals={0} className="num" /></strong>{' '}
+            {t.supporters === 1 ? 'supporter' : 'supporters'}
+          </span>
           {t.monthlySupporters > 0 ? (
             <span><strong className="num">{t.monthlySupporters}</strong> monthly</span>
           ) : null}
