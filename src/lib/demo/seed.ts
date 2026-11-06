@@ -14,6 +14,7 @@ import { PRELOAD_DEFAULTS } from '../preload/schedule';
 import type { Rung } from '../ladder/rungs';
 import type { Idea } from '../orchestrate/triage';
 import type { Goal, Pledge } from '../support/pledge';
+import type { UnitId } from '../support/units';
 
 export const ME = 'user_me';
 
@@ -25,6 +26,12 @@ export interface SupportProfile {
   /** One line, in the creator's own words, about what the compute is for. */
   blurb: string;
   goal: Goal | null;
+  /**
+   * What one gift buys on this page — the creator's "coffee". Supporters pick
+   * how many, not which; one unit and a count is the whole decision, which is
+   * why a tip jar converts. Optional so profiles saved before it still load.
+   */
+  unitId?: UnitId;
   /**
    * The creator's own payment link — Stripe, Ko-fi, GitHub Sponsors, anything.
    * TIDEPOOL links out to it and never handles the money.
@@ -96,6 +103,7 @@ const SEED_SUPPORT = (now: number): SupportProfile => ({
   displayName: 'Harbour build',
   blurb: 'I build open tools for pooled AI capacity, and publish everything I learn doing it.',
   goal: { label: 'a month of overnight digests', tokens: 7_500_000 },
+  unitId: 'tide',
   payLink: null,
   pledges: [
     seedPledge({

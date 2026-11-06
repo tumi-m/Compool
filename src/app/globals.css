@@ -38,15 +38,22 @@
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Buy me compute. The one part of the app written for people who have never
-     heard of it, so it borrows the warmth of a tip jar rather than the
-     density of a dashboard: a soft serif, pill buttons, round corners. The
-     call-to-action blue is solved, not picked — 3:1 as a shape against the
-     page and 4.5:1 for the words on it. */
-  --cta: #5b8ae0;
-  --cta-hover: #7aa0e8;
-  --on-cta: #0d1b2a;
-  --serif: Fraunces, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --r-soft: 18px;
+     heard of it, so it borrows the look of a tip jar rather than the density
+     of a dashboard: a friendly sans, white cards, and the yellow button
+     everybody already knows means "support this person". Dark ink on the
+     yellow is 13:1; the button is identified by its words, not its outline
+     (WCAG 1.4.11 asks nothing of a text button's edge), so it needs no border. */
+  --cta: #ffdd00;
+  --cta-hover: #f2d100;
+  --on-cta: #0d0c22;
+  /* the picked count's edge: ink on a light card, where yellow alone is lost */
+  --pick-ring: #12222a;
+  /* decorative: the warm wash behind the cup and the count */
+  --cta-wash: #fffbe5;
+  --cta-edge: #f6e58d;
+  --tip-display: var(--font-friendly), "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --tip-script: var(--font-script), "Brush Script MT", cursive;
+  --r-soft: 20px;
 
   --r: 4px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -75,9 +82,12 @@
   --accent-fill: #32c9bc;
   --on-accent: #04222a;
 
-  --cta: #8fb3f5;
-  --cta-hover: #aac5f8;
-  --on-cta: #0b1a33;
+  --cta: #ffdd00;
+  --cta-hover: #ffe74d;
+  --on-cta: #0d0c22;
+  --pick-ring: #ffdd00;
+  --cta-wash: #22220f;
+  --cta-edge: #4d4719;
 
   --on-deep: #e9f3f2;
   --stripe: rgba(233, 243, 242, 0.04);
@@ -1086,44 +1096,33 @@ fieldset { border: 0; margin: 0; padding: 0; }
 
 /* ---- buy me compute ------------------------------------------------------ */
 
+/* The jar: one white card, one decision (how many), one yellow button. */
 .supportWidget {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-soft);
-  padding: 20px;
+  padding: 24px;
   font-size: 14px;
-  box-shadow: 0 1px 0 var(--line), 0 14px 34px -22px rgba(18, 34, 42, 0.35);
+  box-shadow: 0 4px 28px -6px rgba(13, 12, 34, 0.12);
 }
-.supportWidget.compact { padding: 14px; font-size: 13px; border-radius: 14px; }
+.supportWidget.compact { padding: 16px; font-size: 13px; border-radius: 16px; }
 
-.tipHead { display: flex; gap: 12px; align-items: flex-start; }
-.tipCupBadge {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--foam);
-  color: var(--coral);
-}
-.compact .tipCupBadge { width: 36px; height: 36px; }
 .tipTitle {
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
-  font-size: 23px;
-  line-height: 1.12;
-  letter-spacing: -0.01em;
-  margin: 2px 0 0;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
-.compact .tipTitle { font-size: 18px; }
-.tipBlurb { color: var(--ink-1); margin: 4px 0 0; font-size: 13px; line-height: 1.45; }
+.compact .tipTitle { font-size: 19px; }
+.tipBlurb { color: var(--ink-1); margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; }
 
 .goalBlock { margin-top: 16px; }
 .goalTop { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-bottom: 6px; }
 .goalTop strong { font-weight: 600; }
 .goalBar {
-  height: 12px;
+  height: 10px;
   border-radius: 999px;
   background: var(--stripe);
   border: 1px solid var(--line);
@@ -1137,92 +1136,86 @@ fieldset { border: 0; margin: 0; padding: 0; }
   transition: width 600ms var(--ease-settle);
 }
 
-/* The three units as one segmented control — the cup, the tide, the spring. */
-.unitTabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 4px;
-  margin-top: 16px;
-  background: var(--paper);
-  border: 1px solid var(--line);
+/* ☕ × 1 3 5 [  ] on a warm wash — the whole decision in one row. */
+.qtyBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--cta-wash);
+  border: 1px solid var(--cta-edge);
   border-radius: 14px;
 }
-.unitTab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  min-height: 52px;
-  padding: 6px 4px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  line-height: 1.2;
-}
-.unitTab:hover:not(:disabled) { background: var(--panel); border-color: var(--line); }
-.unitTab[aria-pressed='true'],
-.unitTab[aria-pressed='true']:hover:not(:disabled) {
-  background: var(--panel);
-  border-color: var(--water);
-  box-shadow: 0 2px 8px -4px rgba(18, 34, 42, 0.35);
-}
-.unitTabName { font-weight: 600; font-size: 13px; }
-.unitTabCost { font-size: 11.5px; color: var(--ink-1); }
-.unitNote { margin: 8px 2px 0; font-size: 12.5px; color: var(--ink-1); }
-
-/* cup × 1 3 5 [  ] — the quickest way to say "a few". */
-.qtyRow { display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-.qtyCup { color: var(--coral); display: inline-grid; place-items: center; }
-.qtyTimes { color: var(--ink-2); font-size: 18px; line-height: 1; }
+.compact .qtyBox { padding: 10px 12px; gap: 8px; margin-top: 14px; }
+.qtyCup { font-size: 38px; line-height: 1; }
+.compact .qtyCup { font-size: 30px; }
+.qtyTimes { color: var(--ink-2); font-size: 20px; line-height: 1; margin-right: 2px; }
 .qtyChip {
   width: 44px;
   height: 44px;
   min-height: 44px;
   padding: 0;
   border-radius: 50%;
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--line);
   background: var(--panel);
-  font-family: var(--mono);
-  font-size: 15px;
-  font-weight: 600;
+  color: var(--ink-0);
+  font-family: var(--tip-display);
+  font-size: 17px;
+  font-weight: 800;
   transition: transform 160ms var(--ease-settle), background 120ms var(--ease-out), border-color 120ms var(--ease-out);
 }
-.qtyChip:hover:not(:disabled) { border-color: var(--water); background: var(--foam); }
+.qtyChip:hover:not(:disabled) { border-color: var(--ink-1); background: var(--panel); }
+/* Selected is yellow and, on a light card, ringed in ink: there the yellow
+   alone is too close to the white chips beside it to show which is picked. */
 .qtyChip[aria-pressed='true'],
 .qtyChip[aria-pressed='true']:hover:not(:disabled) {
-  background: var(--accent-fill);
-  border-color: var(--accent-fill);
-  color: var(--on-accent);
+  background: var(--cta);
+  color: var(--on-cta);
+  border: 2px solid var(--pick-ring);
   transform: scale(1.06);
 }
 .supportWidget input.qtyInput {
-  width: 72px;
+  width: 64px;
   min-height: 44px;
   border-radius: 999px;
   text-align: center;
+  font-family: var(--tip-display);
+  font-weight: 700;
   font-size: 16px;
-  padding: 6px 10px;
+  padding: 6px 8px;
+  background: var(--panel);
 }
+/* One row down to a 360px phone: the custom box takes whatever is left. */
+.supportWidget input.qtyInput { flex: 1 1 52px; max-width: 80px; }
+@media (max-width: 420px) {
+  .qtyBox { flex-wrap: nowrap; gap: 6px; padding: 12px; }
+  .qtyCup { font-size: 28px; }
+  .qtyTimes { font-size: 17px; margin-right: 0; }
+  .supportWidget input.qtyInput { min-width: 48px; width: auto; }
+}
+.unitNote { margin: 8px 2px 0; font-size: 12.5px; color: var(--ink-1); }
 
-.tipFields { display: grid; gap: 8px; margin-top: 14px; }
+.tipFields { display: grid; gap: 10px; margin-top: 16px; }
 .supportWidget input[type='text'],
 .supportWidget textarea {
   border-radius: 12px;
   font-family: var(--sans);
   /* 16px stops iOS zooming the page when the field takes focus. */
   font-size: 16px;
-  padding: 10px 13px;
-  min-height: 44px;
+  padding: 11px 14px;
+  min-height: 46px;
+  background: var(--paper);
 }
-.supportWidget textarea { min-height: 84px; }
+.supportWidget textarea { min-height: 92px; }
 .tipChecks { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 10px; }
 .tipCheck {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-0);
   cursor: pointer;
@@ -1233,18 +1226,19 @@ fieldset { border: 0; margin: 0; padding: 0; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  min-height: 52px;
-  margin-top: 14px;
-  padding: 10px 18px;
+  min-height: 54px;
+  margin-top: 16px;
+  padding: 10px 20px;
   border: 0;
   border-radius: 999px;
   background: var(--cta);
   color: var(--on-cta);
-  font-family: var(--sans);
-  font-size: 16px;
-  font-weight: 700;
+  font-family: var(--tip-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
   text-decoration: none;
   transition: transform 160ms var(--ease-settle), background 120ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
@@ -1252,66 +1246,65 @@ fieldset { border: 0; margin: 0; padding: 0; }
   background: var(--cta-hover);
   color: var(--on-cta);
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px -10px rgba(13, 27, 42, 0.55);
+  box-shadow: 0 8px 18px -10px rgba(13, 12, 34, 0.5);
 }
 .tipCta:active:not(:disabled) { transform: translateY(0) scale(0.99); }
-.tipCta .num { font-size: 16px; }
-.tipCtaPer { font-weight: 500; opacity: 0.85; }
-.compact .tipCta { min-height: 46px; font-size: 15px; }
-.tipFine { margin: 9px 2px 0; font-size: 12px; color: var(--ink-1); line-height: 1.45; text-align: center; }
+.tipCtaPer { font-weight: 600; opacity: 0.8; }
+.compact .tipCta { min-height: 48px; font-size: 16px; }
+.tipFine { margin: 10px 2px 0; font-size: 12px; color: var(--ink-1); line-height: 1.45; text-align: center; }
 
 .tipThanks { margin-top: 16px; text-align: center; padding: 18px 8px 6px; }
 .tipThanks .tipHeart { color: var(--coral); display: inline-block; animation: heartIn 520ms var(--ease-settle) both; }
-.tipThanks h3 { font-family: var(--serif); font-weight: 800; font-size: 22px; margin: 6px 0; }
-.tipThanks p { margin: 0 auto 10px; color: var(--ink-1); font-size: 13px; }
+.tipThanks h3 { font-family: var(--tip-display); font-weight: 800; font-size: 23px; margin: 6px 0; letter-spacing: -0.02em; }
+.tipThanks p { margin: 0 auto 12px; color: var(--ink-1); font-size: 13.5px; }
 @keyframes heartIn {
   from { transform: scale(0.4); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
-/* A cup-and-name pill for somebody else's site, the size of a share button. */
+/* The button for somebody else's site: yellow, a cup, a handwritten line. */
 .supportButton {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 6px 18px 6px 8px;
-  border-radius: 999px;
+  gap: 8px;
+  max-width: 100%;
+  height: 46px;
+  padding: 0 18px 0 12px;
+  border-radius: 12px;
   background: var(--cta);
   color: var(--on-cta);
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+  box-shadow: 0 2px 8px -3px rgba(13, 12, 34, 0.35);
   transition: transform 160ms var(--ease-settle), background 120ms var(--ease-out);
 }
 .supportButton:hover { background: var(--cta-hover); color: var(--on-cta); transform: translateY(-1px); }
-.supportButtonCup {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--panel);
-  color: var(--coral);
-  display: grid;
-  place-items: center;
+.supportButtonCup { font-size: 22px; line-height: 1; flex: none; }
+.supportButtonText {
+  font-family: var(--tip-script);
+  font-size: 25px;
+  line-height: 1;
+  padding-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- the supporter feed ---- */
 
 .tipFeedHead {
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
   font-size: 19px;
+  letter-spacing: -0.015em;
   margin: 0 0 4px;
 }
 .compact .tipFeedHead { font-size: 15px; }
-.supportWidget .tipFeed { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.supportWidget .tipFeed { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
 .feedList { list-style: none; margin: 0; padding: 0; }
 .feedItem {
   display: flex;
-  gap: 11px;
-  padding: 12px 0;
+  gap: 12px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--line);
   animation: slideIn 220ms var(--ease-out) both;
 }
@@ -1319,12 +1312,12 @@ fieldset { border: 0; margin: 0; padding: 0; }
 .compact .feedItem { padding: 8px 0; gap: 9px; }
 .feedAvatar {
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
   font-size: 16px;
   /* Every tone is a text token already solved at 4.5:1 against --panel, so
@@ -1336,36 +1329,36 @@ fieldset { border: 0; margin: 0; padding: 0; }
 .feedAvatar[data-tone='1'] { background: var(--link); }
 .feedAvatar[data-tone='2'] { background: var(--shallow-ink); }
 .feedAvatar[data-tone='3'] { background: var(--coral-ink); }
-.feedBody { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.45; }
+.feedBody { flex: 1; min-width: 0; font-size: 14px; line-height: 1.45; }
 .compact .feedBody { font-size: 12.5px; }
 .feedLine { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
-.feedWhen { margin-left: auto; color: var(--ink-2); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.feedWhen { margin-left: auto; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 .feedMonthly {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--foam);
-  color: var(--link);
+  background: var(--cta-wash);
+  border: 1px solid var(--cta-edge);
+  color: var(--ink-0);
 }
 .feedNote {
-  margin: 6px 0 0;
-  padding: 8px 12px;
+  margin: 7px 0 0;
+  padding: 10px 14px;
   background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 4px 14px 14px 14px;
+  border-radius: 4px 16px 16px 16px;
   overflow-wrap: anywhere;
 }
 .feedPrivate { margin: 5px 0 0; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-1); font-size: 12.5px; }
 .feedReply {
-  margin: 6px 0 0 14px;
+  margin: 8px 0 0 14px;
   padding-left: 10px;
-  border-left: 2px solid var(--water);
+  border-left: 3px solid var(--cta);
   color: var(--ink-1);
   overflow-wrap: anywhere;
 }
 .feedReply strong { color: var(--ink-0); }
-.feedEmpty { color: var(--ink-1); font-size: 13px; margin: 8px 0 0; }
+.feedEmpty { color: var(--ink-1); font-size: 13.5px; margin: 8px 0 0; }
 
 /* ---- the public page: a cover, a face, then the jar ---- */
 
@@ -1399,21 +1392,21 @@ fieldset { border: 0; margin: 0; padding: 0; }
   place-items: center;
   background: var(--chip-ink);
   color: var(--panel);
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
-  font-size: 42px;
+  font-size: 40px;
   border: 5px solid var(--paper);
-  box-shadow: 0 10px 24px -14px rgba(18, 34, 42, 0.6);
+  box-shadow: 0 10px 24px -14px rgba(13, 12, 34, 0.6);
 }
 .tipName {
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
-  font-size: clamp(30px, 6vw, 44px);
-  letter-spacing: -0.015em;
+  font-size: clamp(30px, 6vw, 42px);
+  letter-spacing: -0.03em;
   margin-top: 12px;
 }
-.tipProfile .tipBlurb { font-size: 15.5px; max-width: 52ch; margin-top: 8px; }
-.tipMeta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 16px; margin-top: 14px; font-size: 13.5px; color: var(--ink-1); }
+.tipProfile .tipBlurb { font-size: 15.5px; max-width: 52ch; margin-top: 6px; }
+.tipMeta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 16px; margin-top: 14px; font-size: 14px; color: var(--ink-1); }
 .tipMeta strong { color: var(--ink-0); }
 .pillBtn {
   display: inline-flex;
@@ -1422,22 +1415,23 @@ fieldset { border: 0; margin: 0; padding: 0; }
   min-height: 40px;
   padding: 6px 16px;
   border-radius: 999px;
-  border: 1.5px solid var(--ink-0);
-  background: transparent;
+  border: 1px solid var(--line);
+  background: var(--panel);
   color: var(--ink-0);
   font-weight: 600;
   font-size: 13.5px;
   text-decoration: none;
+  box-shadow: 0 1px 3px rgba(13, 12, 34, 0.08);
 }
-.pillBtn:hover:not(:disabled) { background: var(--ink-0); color: var(--paper); border-color: var(--ink-0); }
+.pillBtn:hover:not(:disabled) { border-color: var(--ink-1); background: var(--panel); color: var(--ink-0); }
 
 .tipGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 390px;
-  grid-template-areas: 'feed give' 'about give';
+  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-areas: 'about give' 'feed give';
   align-items: start;
-  gap: 18px 24px;
-  max-width: 1000px;
+  gap: 20px 24px;
+  max-width: 1020px;
   margin: 28px auto 0;
 }
 .tipGive { grid-area: give; position: sticky; top: 16px; }
@@ -1447,9 +1441,10 @@ fieldset { border: 0; margin: 0; padding: 0; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-soft);
-  padding: 20px 22px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 28px -10px rgba(13, 12, 34, 0.1);
 }
-.tipCard h2 { font-family: var(--serif); font-weight: 800; font-size: 21px; margin-bottom: 8px; }
+.tipCard h2 { font-family: var(--tip-display); font-weight: 800; font-size: 21px; letter-spacing: -0.02em; margin-bottom: 8px; }
 .tipCard p { color: var(--ink-1); font-size: 14px; }
 .tipWays { display: grid; gap: 12px; margin-top: 4px; }
 .tipWay { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: start; }
@@ -1460,55 +1455,65 @@ fieldset { border: 0; margin: 0; padding: 0; }
 .tipWayDot[data-k='never'] { background: var(--ink-2); }
 
 @media (max-width: 860px) {
-  .tipGrid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'give' 'feed' 'about'; margin-top: 22px; }
+  .tipGrid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'give' 'about' 'feed'; margin-top: 22px; }
   .tipGive { position: static; }
 }
 @media (max-width: 640px) {
   .tipCover { height: 132px; }
-  .tipAvatar { width: 88px; height: 88px; font-size: 36px; }
+  .tipAvatar { width: 88px; height: 88px; font-size: 34px; }
   .tipProfile { margin-top: -64px; }
-  .supportWidget { padding: 16px; }
-  .tipCard { padding: 16px; }
+  .supportWidget { padding: 18px; }
+  .tipCard { padding: 18px; }
 }
 
-/* ---- the creator's side: a warm front door before the settings ---- */
+/* ---- the creator's side: a front door before the settings ---- */
 
-.tipHero { text-align: center; padding: 18px 0 6px; }
+.tipHero { text-align: center; padding: 22px 0 8px; }
 .tipHero h1 {
-  font-family: var(--serif);
+  font-family: var(--tip-display);
   font-weight: 800;
-  font-size: clamp(36px, 7.4vw, 66px);
+  font-size: clamp(38px, 7.6vw, 72px);
   line-height: 1.02;
-  letter-spacing: -0.02em;
-  max-width: 15ch;
+  letter-spacing: -0.04em;
+  max-width: 14ch;
   margin: 0 auto;
   text-wrap: balance;
 }
-.tipHero p { font-size: 17px; color: var(--ink-1); max-width: 46ch; margin: 16px auto 0; line-height: 1.5; }
-.tipHeroActions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 14px; margin-top: 24px; }
-.tipHeroActions .tipCta { width: auto; margin: 0; padding: 10px 28px; min-height: 56px; border-radius: 22px; font-size: 17px; }
+.tipHero p { font-size: 18px; color: var(--ink-1); max-width: 48ch; margin: 18px auto 0; line-height: 1.5; text-wrap: pretty; }
+.tipHeroActions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 14px; margin-top: 26px; }
+.tipHeroActions .tipCta { width: auto; margin: 0; padding: 10px 34px; min-height: 60px; font-size: 19px; }
+.tipHero .tipHeroNote { font-size: 13.5px; margin-top: 12px; color: var(--ink-2); }
 
-.tipSheet {
-  border: 1.5px solid var(--ink-0);
-  border-radius: 30px;
-  background: var(--panel);
-  padding: 26px 24px;
+.tipEyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 8px;
 }
-.tipSheet > h2 { font-family: var(--serif); font-weight: 800; font-size: clamp(26px, 4.6vw, 36px); letter-spacing: -0.01em; }
-.tipSheet > p { font-size: 15.5px; color: var(--ink-1); margin-top: 10px; }
-.tipSheetGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.tipSheet {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  padding: 30px 28px;
+  box-shadow: 0 6px 34px -12px rgba(13, 12, 34, 0.14);
+}
+.tipSheet > h2 { font-family: var(--tip-display); font-weight: 800; font-size: clamp(26px, 4.6vw, 38px); letter-spacing: -0.03em; }
+.tipSheet > p { font-size: 16px; color: var(--ink-1); margin-top: 10px; }
+.tipSheetGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 .tipSheetItem {
   background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 14px 16px;
+  border-radius: 18px;
+  padding: 16px 18px;
 }
 .tipSheetItem h3 { font-size: 15px; margin-bottom: 4px; }
 .tipSheetItem p { margin: 0; font-size: 13px; color: var(--ink-1); }
-.tipSheetFig { font-family: var(--serif); font-weight: 800; font-size: 26px; line-height: 1.1; margin: 4px 0; color: var(--ink-0); }
+.tipSheetFig { font-family: var(--tip-display); font-weight: 800; font-size: 28px; line-height: 1.1; margin: 4px 0; color: var(--ink-0); letter-spacing: -0.02em; }
 @media (max-width: 760px) {
   .tipSheetGrid { grid-template-columns: minmax(0, 1fr); }
-  .tipSheet { padding: 20px 16px; border-radius: 24px; }
+  .tipSheet { padding: 22px 18px; border-radius: 24px; }
 }
 
 .thanksRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 8px; }
@@ -1522,9 +1527,8 @@ body.embedBody {
   margin: 0;
 }
 body.embedBody .supportWidget { height: 100vh; overflow-y: auto; box-sizing: border-box; box-shadow: none; }
-/* No webfont in a frame on a stranger's site — it would hand their visitors'
-   addresses to a font CDN — so the serif falls back to the system's. */
-body.embedBody { --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif; }
+/* Room for the button's shadow inside the frame. */
+body.embedBody:has(.supportButton) { padding: 1px 2px; }
 
 .snippetBox {
   background: var(--paper);

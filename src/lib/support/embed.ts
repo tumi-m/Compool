@@ -25,7 +25,7 @@ export const DEFAULT_EMBED: EmbedOptions = {
   showGoal: true,
 };
 
-export const EMBED_WIDTH: Record<EmbedVariant, number> = { button: 236, card: 340, wall: 340 };
+export const EMBED_WIDTH: Record<EmbedVariant, number> = { button: 264, card: 340, wall: 340 };
 
 /**
  * The frame's height has to be right in the snippet, because it cannot be right
@@ -38,13 +38,14 @@ export const EMBED_WIDTH: Record<EmbedVariant, number> = { button: 236, card: 34
  */
 // Measured at 340px wide against a full wall of long notes with replies, plus
 // 26px on the base so a display name that wraps to a second line still fits.
-const H_BASE = 360;        // header, unit tabs, count chips, button, fine print
-const H_GOAL = 78;         // goal label, bar, remaining line
-const H_SUPPORTERS = 218;  // heading and the capped feed
+const H_BASE = 351;        // title, the cup-and-count box, button, fine print
+const H_GOAL = 76;         // goal label, bar, remaining line
+const H_SUPPORTERS = 220;  // heading and the capped feed
 const H_WALL_EXTRA = 68;   // the wall variant's taller feed
+const H_BUTTON = 50;       // the 46px button, its shadow and a pixel each side
 
 export function embedHeight(o: EmbedOptions): number {
-  if (o.variant === 'button') return 48;
+  if (o.variant === 'button') return H_BUTTON;
   return (
     H_BASE +
     (o.showGoal ? H_GOAL : 0) +

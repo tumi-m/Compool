@@ -10,7 +10,7 @@ import {
 } from '@/lib/support/embed';
 import { MAX_REPLY, giftableSources, totals, type Pledge } from '@/lib/support/pledge';
 import { useToast } from '@/components/Toaster';
-import { describeTokens, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
+import { DEFAULT_UNIT, describeTokens, isUnitId, unit, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
 import { tokens as fmtTokens, usd } from '@/lib/format';
 
 /** The creator's side: turn it on, say what it is for, take the snippet. */
@@ -86,6 +86,7 @@ export default function SupportPage() {
     }
   };
 
+  const myUnit = p.unitId ?? DEFAULT_UNIT;
   const snippet = embedSnippet(origin, handleOk ? p.handle : 'your-handle', opts);
 
   return (
@@ -106,7 +107,10 @@ export default function SupportPage() {
           >
             {copied === 'hero' ? 'Copied' : 'Copy your link'}
           </button>
-          <label className="tipCheck">
+        </div>
+        <p className="tipHeroNote">
+          Free, and the money goes straight to you. ·{' '}
+          <label className="tipCheck" style={{ display: 'inline-flex', minHeight: 0, fontSize: 13.5 }}>
             <input
               type="checkbox"
               checked={p.enabled}
@@ -115,17 +119,18 @@ export default function SupportPage() {
             />
             Page is {p.enabled ? 'live' : 'off'}
           </label>
-        </div>
+        </p>
       </section>
 
       <section className="tipSheet">
-        <h2>Support, your way</h2>
-        <p>Take one-off gifts, keep monthly supporters, or borrow somebody’s spare compute. All from one page.</p>
+        <span className="tipEyebrow">Support</span>
+        <h2>An easy way for your audience to fund the runs.</h2>
+        <p>One-off gifts, monthly supporters, or somebody’s spare compute — all from one page, in one tap.</p>
         <div className="tipSheetGrid">
           <div className="tipSheetItem">
             <h3>One-off gifts</h3>
-            <div className="tipSheetFig num">{usd(unitCostUsd('tide', 'anthropic:workhorse'))}</div>
-            <p>buys {unitPhrase('tide', 1)} — {UNITS.find((u) => u.id === 'tide')!.buys}. Cups and spring tides either side of it.</p>
+            <div className="tipSheetFig num">{usd(unitCostUsd(myUnit, 'anthropic:workhorse'))}</div>
+            <p>buys {unitPhrase(myUnit, 1)} — {unit(myUnit).buys}. Supporters tap ×1, ×3 or ×5.</p>
           </div>
           <div className="tipSheetItem">
             <h3>Monthly supporters</h3>
@@ -210,6 +215,26 @@ export default function SupportPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="unit">What one gift buys</label>
+            <select
+              id="unit"
+              value={myUnit}
+              onChange={(e) => {
+                if (isUnitId(e.target.value)) set({ unitId: e.target.value });
+              }}
+            >
+              {UNITS.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.label.replace(/^A /, '')} — {u.buys} · {usd(unitCostUsd(u.id, 'anthropic:workhorse'))}
+                </option>
+              ))}
+            </select>
+            <div className="hint" style={{ marginTop: 4 }}>
+              Your coffee, in compute. Supporters choose how many, never which — one decision is the whole point.
             </div>
           </div>
 
@@ -374,6 +399,7 @@ export default function SupportPage() {
                   pledges={p.pledges}
                   payLink={p.payLink}
                   variant={opts.variant}
+                  unitId={myUnit}
                   showSupporters={opts.showSupporters}
                   showGoal={opts.showGoal}
                   now={now}

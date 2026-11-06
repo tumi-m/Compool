@@ -7,10 +7,8 @@ import { SupportWidget, SupporterFeed, firstName, type PledgeChoice } from '@/co
 import { CapacityField } from '@/components/motion/CapacityField';
 import { useToast } from '@/components/Toaster';
 import { newPledge, totals, wallEntries } from '@/lib/support/pledge';
-import { describeTokens, type UnitId } from '@/lib/support/units';
+import { DEFAULT_UNIT } from '@/lib/support/units';
 import { isValidHandle } from '@/lib/support/embed';
-
-const UNIT_IDS: UnitId[] = ['cup', 'tide', 'spring'];
 
 /**
  * The public support page — the link a creator puts in a bio, a talk slide or a
@@ -25,14 +23,12 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
   const t = useMemo(() => totals(profile.pledges, now), [profile.pledges, now]);
   const entries = useMemo(() => wallEntries(profile.pledges), [profile.pledges]);
 
-  // The embed hands a supporter over with their choice in the query string, so
-  // they finish what they started rather than picking it all again.
-  const [initial, setInitial] = useState<{ unitId: UnitId; count: number } | undefined>(undefined);
+  // The embed hands a supporter over with their count in the query string, so
+  // they finish what they started rather than picking it again.
+  const [initialCount, setInitialCount] = useState<number | undefined>(undefined);
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    const u = q.get('unit') as UnitId | null;
-    const n = Number(q.get('n'));
-    if (u && UNIT_IDS.includes(u)) setInitial({ unitId: u, count: Number.isFinite(n) && n > 0 ? n : 1 });
+    const n = Number(new URLSearchParams(window.location.search).get('n'));
+    if (Number.isFinite(n) && n > 0) setInitialCount(n);
   }, []);
 
   if (!isValidHandle(handle)) {
@@ -122,7 +118,6 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
           {t.monthlySupporters > 0 ? (
             <span><strong className="num">{t.monthlySupporters}</strong> monthly</span>
           ) : null}
-          <span><strong>{describeTokens(t.pledgedTokens)}</strong> given</span>
           <button type="button" className="pillBtn" onClick={share}>
             <ShareMark /> Share
           </button>
@@ -132,7 +127,7 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
       <div className="tipGrid">
         <div className="tipGive">
           <SupportWidget
-            key={initial ? `${initial.unitId}-${initial.count}` : 'fresh'}
+            key={initialCount ?? 'fresh'}
             handle={profile.handle}
             displayName={profile.displayName}
             goal={profile.goal}
@@ -142,7 +137,8 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
             showSupporters={false}
             now={now}
             onPledge={addPledge}
-            initial={initial}
+            unitId={profile.unitId ?? DEFAULT_UNIT}
+            initialCount={initialCount}
           />
         </div>
 
@@ -151,7 +147,7 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
         </section>
 
         <section className="tipCard tipAbout">
-          <h2>What you are actually giving</h2>
+          <h2>What your support buys</h2>
           <p>
             Not a coffee — a unit of work. A tide is one overnight run: the thing that reads everything merged
             yesterday and has an answer waiting in the morning. Prices are quoted at the going rate, from the

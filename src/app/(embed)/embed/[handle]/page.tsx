@@ -52,6 +52,7 @@ export default function EmbedPage({ params }: { params: Promise<{ handle: string
       variant={options.variant}
       showSupporters={options.showSupporters}
       showGoal={options.showGoal}
+      unitId={profile.unitId}
       compact
     />
   );

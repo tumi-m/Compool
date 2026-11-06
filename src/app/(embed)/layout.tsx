@@ -1,3 +1,4 @@
+import { fontVariables } from '../fonts';
 import '../globals.css';
 
 /**
@@ -12,7 +13,7 @@ export const metadata = { title: 'Buy me compute', robots: { index: false, follo
 
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
         <script
           // The host page's theme is not readable from inside a frame, so `auto`

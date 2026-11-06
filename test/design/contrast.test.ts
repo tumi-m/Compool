@@ -55,8 +55,13 @@ describe.each([
     expect(ratio(t['on-cta'], t['cta-hover'])).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('keeps the call-to-action pill visible as a shape (3:1 on the page)', () => {
-    for (const g of ['paper', 'panel']) expect(ratio(t['cta'], t[g]), `--cta on --${g}`).toBeGreaterThanOrEqual(3);
+  // The yellow button is identified by its words, and WCAG 1.4.11 asks nothing
+  // of a text button's edge — so the yellow is free to be the yellow. What it
+  // cannot do is carry *state* on its own: the picked count is yellow inside
+  // a ring, and that edge is what has to stand out from the card (in the dark
+  // theme the ring is the yellow itself, which already does).
+  it('gives the picked count an edge that stands out from the card', () => {
+    expect(ratio(t['pick-ring'], t['panel'])).toBeGreaterThanOrEqual(3);
   });
 
   it('puts avatar initials at 4.5:1 on every avatar tone', () => {

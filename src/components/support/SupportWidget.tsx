@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UNITS, describeTokens, unit, unitCostUsd, unitPhrase, type UnitId } from '@/lib/support/units';
+import { DEFAULT_UNIT, describeTokens, unit, unitCostUsd, unitPhrase, type UnitId } from '@/lib/support/units';
 import { MAX_COUNT, clampCount, goalProgress, wallEntries, type Goal, type Pledge, type WallEntry } from '@/lib/support/pledge';
 import type { EmbedVariant } from '@/lib/support/embed';
 import { relative, usd } from '@/lib/format';
@@ -44,7 +44,8 @@ export function SupportWidget({
   now = Date.now(),
   onPledge,
   compact = false,
-  initial,
+  unitId = DEFAULT_UNIT,
+  initialCount,
 }: {
   handle: string;
   displayName: string;
@@ -58,11 +59,13 @@ export function SupportWidget({
   now?: number;
   onPledge?: (choice: PledgeChoice) => void;
   compact?: boolean;
-  initial?: { unitId: UnitId; count: number };
+  /** The creator's "coffee": what one gift buys on this page. */
+  unitId?: UnitId;
+  initialCount?: number;
 }) {
-  const [picked, setPicked] = useState<UnitId>(initial?.unitId ?? 'tide');
-  const [count, setCount] = useState(initial ? clampCount(initial.count) : 1);
-  const [custom, setCustom] = useState(initial && !QUICK.includes(initial.count) ? String(clampCount(initial.count)) : '');
+  const start = initialCount ? clampCount(initialCount) : 1;
+  const [count, setCount] = useState(start);
+  const [custom, setCustom] = useState(QUICK.includes(start) ? '' : String(start));
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [monthly, setMonthly] = useState(false);
@@ -74,19 +77,20 @@ export function SupportWidget({
   if (variant === 'button') {
     return (
       <a className="supportButton" href={`/c/${handle}`} target="_blank" rel="noopener">
-        <span className="supportButtonCup"><CupMark size={20} /></span>
-        Buy {first} compute
+        <span className="supportButtonCup" aria-hidden="true">☕</span>
+        <span className="supportButtonText">Buy {first} compute</span>
       </a>
     );
   }
 
   const g = goalProgress(pledges, showGoal ? goal : null, now);
-  const total = unitCostUsd(picked, QUOTE_MODEL) * count;
-  const fullPage = `/c/${handle}?unit=${picked}&n=${count}`;
+  const each = unitCostUsd(unitId, QUOTE_MODEL);
+  const total = each * count;
+  const fullPage = `/c/${handle}?n=${count}`;
   const id = (k: string) => `${k}-${handle}`;
 
   const give = () => {
-    onPledge?.({ unitId: picked, count, name: name.trim() || 'Someone', message: message.trim(), monthly, privateMessage: priv });
+    onPledge?.({ unitId, count, name: name.trim() || 'Someone', message: message.trim(), monthly, privateMessage: priv });
     if (payLink) window.open(payLink, '_blank', 'noopener,noreferrer');
     setSent(true);
   };
@@ -100,13 +104,8 @@ export function SupportWidget({
 
   return (
     <div className={`supportWidget${compact ? ' compact' : ''}`} data-variant={variant}>
-      <div className="tipHead">
-        <span className="tipCupBadge"><CupMark size={compact ? 20 : 24} /></span>
-        <div style={{ minWidth: 0 }}>
-          <h2 className="tipTitle">Buy {first} compute</h2>
-          {blurb ? <p className="tipBlurb">{blurb}</p> : null}
-        </div>
-      </div>
+      <h2 className="tipTitle">Buy {first} compute</h2>
+      {blurb ? <p className="tipBlurb">{blurb}</p> : null}
 
       {showGoal && goal ? (
         <div className="goalBlock">
@@ -148,26 +147,8 @@ export function SupportWidget({
         </div>
       ) : (
         <>
-          <div className="unitTabs" role="group" aria-label="What to give">
-            {UNITS.map((u) => (
-              <button
-                key={u.id}
-                type="button"
-                className="unitTab"
-                aria-pressed={picked === u.id}
-                onClick={() => setPicked(u.id)}
-              >
-                <span className="unitTabName">{cap(u.label.replace(/^A /, ''))}</span>
-                <span className="unitTabCost num">{usd(unitCostUsd(u.id, QUOTE_MODEL))}</span>
-              </button>
-            ))}
-          </div>
-          <p className="unitNote">
-            {cap(unitPhrase(picked, 1))} buys {unit(picked).buys}.
-          </p>
-
-          <div className="qtyRow" role="group" aria-label="How many">
-            <span className="qtyCup"><CupMark size={26} /></span>
+          <div className="qtyBox" role="group" aria-label={`How many ${unit(unitId).label.replace(/^A /, '').toLowerCase()}s`}>
+            <span className="qtyCup" aria-hidden="true">☕</span>
             <span className="qtyTimes" aria-hidden="true">×</span>
             {QUICK.map((n) => (
               <button
@@ -202,6 +183,10 @@ export function SupportWidget({
               }}
             />
           </div>
+
+          <p className="unitNote">
+            {cap(unitPhrase(unitId, 1))} is {unit(unitId).buys} · <span className="num">{usd(each)}</span> each
+          </p>
 
           {onPledge && !compact ? (
             <>
@@ -250,7 +235,7 @@ export function SupportWidget({
             </a>
           )}
           <p className="tipFine">
-            {cap(unitPhrase(picked, count))} · {payLink
+            {cap(unitPhrase(unitId, count))} · {payLink
               ? `paid to ${first} directly — TIDEPOOL never touches the money.`
               : `${first} has no payment link yet, so this records a pledge.`}
           </p>
@@ -335,17 +320,6 @@ function tone(name: string): number {
   let h = 0;
   for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) | 0;
   return Math.abs(h) % 4;
-}
-
-/** A cup, in the mark's own language: a vessel with a level in it. */
-export function CupMark({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={{ flex: 'none' }}>
-      <path d="M4 6h13v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V6Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M17 8h1.6a2.4 2.4 0 0 1 0 4.8H17" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M4.6 12.6h11.8V15a3.4 3.4 0 0 1-3.4 3.4H8a3.4 3.4 0 0 1-3.4-3.4v-2.4Z" fill="currentColor" opacity="0.85" />
-    </svg>
-  );
 }
 
 function HeartMark() {

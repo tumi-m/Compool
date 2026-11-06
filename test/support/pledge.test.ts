@@ -3,7 +3,9 @@ import {
   GiftError, MAX_COUNT, MAX_REPLY, assertGiftable, clampCount, giftableSources, goalProgress, isExpired,
   newPledge, redeem, settlePledges, totals, wallEntries, type Pledge,
 } from '@/lib/support/pledge';
-import { describeTokens, tokensToUnits, unit, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
+import {
+  DEFAULT_UNIT, describeTokens, isUnitId, tokensToUnits, unit, unitCostUsd, unitPhrase, UNITS,
+} from '@/lib/support/units';
 import type { CapacitySource } from '@/lib/types';
 
 const NOW = Date.parse('2026-09-28T12:00:00Z');
@@ -278,5 +280,13 @@ describe('how many', () => {
     expect(unitPhrase('tide', 3)).toBe('3 tides');
     expect(unitPhrase('spring', 1)).toBe('a spring tide');
     expect(unitPhrase('cup', 5)).toBe('5 cups');
+  });
+});
+
+describe('the creator’s unit', () => {
+  it('accepts exactly the units there are, so a bad saved setting cannot reach the price book', () => {
+    for (const u of UNITS) expect(isUnitId(u.id)).toBe(true);
+    for (const bad of ['coffee', '', 'TIDE', null, undefined, 3]) expect(isUnitId(bad)).toBe(false);
+    expect(isUnitId(DEFAULT_UNIT)).toBe(true);
   });
 });

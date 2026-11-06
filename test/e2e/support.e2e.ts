@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser, type Page } from 'playwright';
 import { DEFAULT_EMBED, embedHeight, EMBED_WIDTH, type EmbedOptions } from '@/lib/support/embed';
+import { unitCostUsd } from '@/lib/support/units';
+import { usd } from '@/lib/format';
 
 /**
  * Buy me compute, through the real interface: the promises the page makes to a
@@ -71,21 +73,34 @@ d('the embed', () => {
         }
       }
     }
+
+    const button: EmbedOptions = { ...DEFAULT_EMBED, variant: 'button' };
+    await p.setViewportSize({ width: EMBED_WIDTH.button, height: embedHeight(button) });
+    await p.goto(`${BASE}/embed/harbour?variant=button`, { waitUntil: 'networkidle' });
+    await p.evaluate(() => document.fonts.ready);
+    const b = await p.evaluate(() => {
+      const r = document.querySelector('.supportButton')!.getBoundingClientRect();
+      const text = document.querySelector<HTMLElement>('.supportButtonText')!;
+      return { right: r.right, bottom: r.bottom, w: innerWidth, h: innerHeight, cut: text.scrollWidth > text.clientWidth };
+    });
+    expect(b.right).toBeLessThanOrEqual(b.w);
+    expect(b.bottom).toBeLessThanOrEqual(b.h);
+    expect(b.cut, 'the name is cut short').toBe(false);
     await p.context().close();
   });
 
   it('hands the supporter to the full page with their choice, instead of thanking them for nothing', async () => {
     const p = await fresh(340, 700);
     await p.goto(`${BASE}/embed/harbour?variant=card`, { waitUntil: 'networkidle' });
-    await p.getByRole('button', { name: 'Spring tide' }).click();
     await p.getByRole('button', { name: '5', exact: true }).click();
     const href = await p.locator('a.tipCta').getAttribute('href');
-    expect(href).toBe('/c/harbour?unit=spring&n=5');
+    expect(href).toBe('/c/harbour?n=5');
 
     await p.setViewportSize({ width: 1280, height: 900 });
     await p.goto(`${BASE}${href}`, { waitUntil: 'networkidle' });
-    await expect.poll(() => p.getByRole('button', { name: 'Spring tide' }).getAttribute('aria-pressed')).toBe('true');
-    expect(await p.getByRole('button', { name: '5', exact: true }).getAttribute('aria-pressed')).toBe('true');
+    await expect.poll(() => p.getByRole('button', { name: '5', exact: true }).getAttribute('aria-pressed')).toBe('true');
+    // The total follows the count: five of the creator's unit, not one.
+    expect(await p.locator('button.tipCta').textContent()).toContain(usd(unitCostUsd('tide', 'anthropic:workhorse') * 5));
     await p.context().close();
   });
 });

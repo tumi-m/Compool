@@ -287,10 +287,12 @@ quoted and what the creator is charged cannot drift apart.
 
 It reads like a tip jar, not a dashboard: a cover drawn from the creator's own
 capacity field, a face and a name, the jar beside the supporter feed, and the
-plumbing explained underneath for anyone who asks.
+plumbing explained underneath for anyone who asks. White cards, a friendly sans
+and the yellow button everybody already reads as "support this person".
 
-- **Pick, count, say something.** Cup, tide or spring tide; ×1, ×3, ×5 or any
-  number up to 100; a name and a note.
+- **One decision.** The creator picks what one gift buys — a cup, a tide or a
+  spring tide, their "coffee" — and a supporter only chooses how many: ☕ × 1,
+  3, 5 or any number up to 100, then a name and a note.
 - **Monthly.** A supporter can mark a gift monthly. Nothing here can charge
   anyone, so it is a stated intent the creator sees and counts — the repeat is
   set up on the creator's own payment link.
@@ -324,8 +326,11 @@ full public page for a bio, a README or a talk's last slide.
   would be a script on their page. A browser test loads every configuration
   against a full wall of long notes and fails if anything, the button above all,
   falls outside the frame the snippet gives it.
+- The **button variant** is the classic yellow tip-jar button with a
+  handwritten label. Its fonts are self-hosted at build time, so the embed never
+  sends a creator's visitors to a font CDN.
 - The embed has nowhere to record a pledge, so its button **hands the supporter
-  to the full page with their choice carried over** instead of thanking them for
+  to the full page with their count carried over** instead of thanking them for
   a gift that went nowhere.
 
 ## Performance

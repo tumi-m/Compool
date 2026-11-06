@@ -25,6 +25,13 @@ export const UNITS: ComputeUnit[] = [
   { id: 'spring', label: 'A spring tide', buys: 'a full night of batch work', tokens: 1_000_000 },
 ];
 
+/** The unit a page sells when its creator has not picked one: one overnight run. */
+export const DEFAULT_UNIT: UnitId = 'tide';
+
+export function isUnitId(v: unknown): v is UnitId {
+  return v === 'cup' || v === 'tide' || v === 'spring';
+}
+
 export function unit(id: UnitId): ComputeUnit {
   const u = UNITS.find((x) => x.id === id);
   if (!u) throw new Error(`unknown unit: ${id}`);
