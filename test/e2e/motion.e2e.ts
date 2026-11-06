@@ -65,8 +65,16 @@ async function boost(p: Page) {
   await p.locator('#urgency-idea_4').selectOption('5');
 }
 
+/**
+ * The app saves its workspace after it hydrates, not at the load event — so a
+ * test that edits it has to wait for it to exist, or it reads null when the
+ * machine is busy.
+ */
+const saved = (p: Page) => p.waitForFunction(() => localStorage.getItem('tidepool.workspace.v1') !== null);
+
 /** Puts a debt between two members, so the settle-up flow has something to draw. */
 async function owe(p: Page) {
+  await saved(p);
   await p.evaluate(() => {
     const w = JSON.parse(localStorage.getItem('tidepool.workspace.v1')!);
     const at = new Date().toISOString();
@@ -171,6 +179,7 @@ d('motion', () => {
     const p = await page(false);
     await p.goto(`${BASE}/preload`, { waitUntil: 'load' });
     // Move one item's window three hours out, so there is something to count down to.
+    await saved(p);
     await p.evaluate(() => {
       const w = JSON.parse(localStorage.getItem('tidepool.workspace.v1')!);
       const item = w.preload.find((i: { enabled: boolean }) => i.enabled);

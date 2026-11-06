@@ -102,7 +102,7 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
   };
 
   return (
-    <div className="tipPage">
+    <div className="tipPage" data-tip-theme={profile.theme}>
       <div className="heroBand tipCover">
         <CapacityField
           sources={ws.sources.filter((s) => s.status !== 'revoked')}
@@ -152,12 +152,13 @@ export default function CreatorPage({ params }: { params: Promise<{ handle: stri
             now={now}
             onPledge={addPledge}
             unitId={profile.unitId ?? DEFAULT_UNIT}
+            theme={profile.theme}
             initialCount={initialCount}
           />
         </div>
 
         <section className="tipCard tipFeedCard" aria-label="Supporters">
-          <SupporterFeed entries={entries} creator={first} now={now} heading="Recent supporters" />
+          <SupporterFeed entries={entries} creator={first} now={now} heading="Recent supporters" level="h2" />
         </section>
 
         <section className="tipCard tipAbout">

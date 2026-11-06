@@ -290,3 +290,12 @@ describe('the creator’s unit', () => {
     expect(isUnitId(DEFAULT_UNIT)).toBe(true);
   });
 });
+
+describe('page colours', () => {
+  it('accepts exactly the solved palettes, so a bad saved value cannot reach the page', async () => {
+    const { TIP_THEMES, isTipTheme, DEFAULT_TIP_THEME } = await import('@/lib/support/theme');
+    for (const t of TIP_THEMES) expect(isTipTheme(t.id)).toBe(true);
+    for (const bad of ['red', '', '#ff0000', null, undefined]) expect(isTipTheme(bad)).toBe(false);
+    expect(isTipTheme(DEFAULT_TIP_THEME)).toBe(true);
+  });
+});

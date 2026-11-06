@@ -7,6 +7,7 @@ import type { EmbedVariant } from '@/lib/support/embed';
 import { relative, usd } from '@/lib/format';
 import { steamLevel } from '@/lib/motion';
 import { Odometer } from '@/components/motion/Odometer';
+import type { TipTheme } from '@/lib/support/theme';
 
 /** Quotes are at the going rate for a capable model, from the ledger's own book. */
 const QUOTE_MODEL = 'anthropic:workhorse';
@@ -48,6 +49,8 @@ export function SupportWidget({
   compact = false,
   unitId = DEFAULT_UNIT,
   initialCount,
+  theme,
+  titleAs: Title = 'h2',
 }: {
   handle: string;
   displayName: string;
@@ -64,6 +67,10 @@ export function SupportWidget({
   /** The creator's "coffee": what one gift buys on this page. */
   unitId?: UnitId;
   initialCount?: number;
+  /** The creator's page colour; the default yellow when unset. */
+  theme?: TipTheme;
+  /** h1 when the widget is the whole document (the embed), h2 inside a page. */
+  titleAs?: 'h1' | 'h2';
 }) {
   const start = initialCount ? clampCount(initialCount) : 1;
   const [count, setCount] = useState(start);
@@ -78,7 +85,7 @@ export function SupportWidget({
 
   if (variant === 'button') {
     return (
-      <a className="supportButton" href={`/c/${handle}`} target="_blank" rel="noopener">
+      <a className="supportButton" href={`/c/${handle}`} target="_blank" rel="noopener" data-tip-theme={theme}>
         <span className="supportButtonCup" aria-hidden="true">☕</span>
         <span className="supportButtonText">Buy {first} compute</span>
       </a>
@@ -105,8 +112,8 @@ export function SupportWidget({
   };
 
   return (
-    <div className={`supportWidget${compact ? ' compact' : ''}`} data-variant={variant}>
-      <h2 className="tipTitle">Buy {first} compute</h2>
+    <div className={`supportWidget${compact ? ' compact' : ''}`} data-variant={variant} data-tip-theme={theme}>
+      <Title className="tipTitle">Buy {first} compute</Title>
       {blurb ? <p className="tipBlurb">{blurb}</p> : null}
 
       {showGoal && goal ? (
@@ -258,6 +265,7 @@ export function SupportWidget({
       {showSupporters ? (
         <div className="tipFeed">
           <SupporterFeed
+            level={Title === 'h1' ? 'h2' : 'h3'}
             entries={wallEntries(pledges)}
             creator={first}
             now={now}
@@ -281,6 +289,7 @@ export function SupporterFeed({
   limit = 20,
   maxHeight,
   heading = 'Recent supporters',
+  level: Heading = 'h3',
 }: {
   entries: WallEntry[];
   creator: string;
@@ -288,10 +297,12 @@ export function SupporterFeed({
   limit?: number;
   maxHeight?: number;
   heading?: string;
+  /** One below whatever titles the surface it sits in. */
+  level?: 'h2' | 'h3';
 }) {
   return (
     <>
-      <h3 className="tipFeedHead">{heading}</h3>
+      <Heading className="tipFeedHead">{heading}</Heading>
       {entries.length === 0 ? (
         <p className="feedEmpty">Nobody yet. The first one gets the top spot.</p>
       ) : (

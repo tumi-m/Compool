@@ -8,6 +8,7 @@ import { fillFraction } from '@/lib/router/headroom';
 import { clientSnippet } from '@/lib/integrations/catalog';
 import { clockAt, pct } from '@/lib/format';
 import { useFlip } from '@/components/motion/useFlip';
+import { NextStep } from '@/components/NextStep';
 
 /**
  * The catalogue. A dense, searchable list of every rung with the provider that
@@ -172,6 +173,7 @@ export default function ModelsPage() {
           <Link href="/orchestrate">Queue a burst of ideas against it →</Link>
         </p>
       </section>
+      <NextStep from="/models" />
     </div>
   );
 }

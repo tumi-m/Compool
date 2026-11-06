@@ -33,6 +33,8 @@ async function fresh(width = 1280, height = 900): Promise<Page> {
 
 /** A wall as long and wordy as it gets, so the height is tested at its worst. */
 async function crowd(p: Page) {
+  // The workspace is saved after hydration, not at the load event.
+  await p.waitForFunction(() => localStorage.getItem('tidepool.workspace.v1') !== null);
   await p.evaluate(() => {
     const w = JSON.parse(localStorage.getItem('tidepool.workspace.v1')!);
     for (let i = 0; i < 12; i++) {

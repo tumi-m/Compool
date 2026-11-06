@@ -7,6 +7,7 @@ import { SettleFlow } from '@/components/motion/SettleFlow';
 import { findImbalances, positionsWithCarried, settle } from '@/lib/meter/ledger';
 import { priceBook } from '@/lib/meter/price-book';
 import { relative, usd } from '@/lib/format';
+import { NextStep } from '@/components/NextStep';
 
 export default function LedgerPage() {
   const { ws, now } = useWorkspace();
@@ -114,6 +115,7 @@ export default function LedgerPage() {
           )}
         </section>
       </div>
+      <NextStep from="/ledger" />
     </div>
   );
 }

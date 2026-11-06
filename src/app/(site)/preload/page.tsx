@@ -21,6 +21,7 @@ import { TideClock } from '@/components/motion/TideClock';
 import { Drain } from '@/components/motion/Drain';
 import { useToast } from '@/components/Toaster';
 import { PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
+import { NextStep } from '@/components/NextStep';
 
 const KIND_COPY: Record<PreloadKind, string> = {
   warm_cache: 'Warm cache — loads context and holds it, so the morning session reads from cache instead of paying full input.',
@@ -381,6 +382,7 @@ export default function PreloadPage() {
           </button>
         </div>
       </section>
+      <NextStep from="/preload" />
     </div>
   );
 }

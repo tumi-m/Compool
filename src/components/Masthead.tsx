@@ -48,17 +48,41 @@ function isCurrent(path: string, href: string): boolean {
   return path === href || path.startsWith(`${href}/`);
 }
 
+type ThemePref = 'light' | 'dark' | 'auto';
+const NEXT_PREF: Record<ThemePref, ThemePref> = { light: 'dark', dark: 'auto', auto: 'light' };
+const PREF_LABEL: Record<ThemePref, string> = { light: 'Light', dark: 'Dark', auto: 'Auto' };
+
 export function Masthead() {
   const path = usePathname() ?? '/';
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  // null until the saved choice has been read. Starting at 'auto' let the
+  // follow-the-system effect run first and repaint a stored Dark as light on
+  // every reload, while the button still said Dark.
+  const [saved, setPref] = useState<ThemePref | null>(null);
+  const pref: ThemePref = saved ?? 'auto';
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setTheme((document.documentElement.getAttribute('data-theme') as 'light' | 'dark') ?? 'light');
+    try {
+      const stored = localStorage.getItem('tidepool.theme');
+      setPref(stored === 'light' || stored === 'dark' ? stored : 'auto');
+    } catch {
+      setPref('auto');
+    }
   }, []);
+
+  // Auto follows the system as it changes — at dusk, or when the OS flips — not
+  // only at first paint, which is all the pre-paint script can do.
+  useEffect(() => {
+    if (saved !== 'auto') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [saved]);
 
   // A menu that stays open across a navigation is a menu covering the page you
   // just asked for.
@@ -84,12 +108,13 @@ export function Masthead() {
     };
   }, [open]);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.setAttribute('data-theme', next);
+  const cycleTheme = () => {
+    const next = NEXT_PREF[pref];
+    setPref(next);
+    if (next !== 'auto') document.documentElement.setAttribute('data-theme', next);
     try {
-      localStorage.setItem('tidepool.theme', next);
+      if (next === 'auto') localStorage.removeItem('tidepool.theme');
+      else localStorage.setItem('tidepool.theme', next);
     } catch {
       /* blocked site data is not a reason to break the page */
     }
@@ -106,18 +131,29 @@ export function Masthead() {
 
       {/* Wide screens: the whole bar. */}
       <nav className="nav navFull" aria-label="Main">
-        {ALL.map((n) => (
-          <Link key={n.href} href={n.href} aria-current={isCurrent(path, n.href) ? 'page' : undefined}>
-            {n.label}
-          </Link>
+        {GROUPS.map((g) => (
+          <span key={g.label} className="navGroup">
+            {g.items.map((n) => (
+              <Link key={n.href} href={n.href} aria-current={isCurrent(path, n.href) ? 'page' : undefined}>
+                {n.label}
+              </Link>
+            ))}
+          </span>
         ))}
       </nav>
 
       {/* Anything narrower: where you are, and a menu for the rest. */}
       <span className="navHere" aria-hidden="true">{current?.label ?? ''}</span>
 
-      <button type="button" className="themeToggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
-        {theme === 'dark' ? 'shallows' : 'deep water'}
+      <button
+        type="button"
+        className="themeToggle"
+        onClick={cycleTheme}
+        data-pref={pref}
+        aria-label={`Theme: ${PREF_LABEL[pref]}. Switch to ${PREF_LABEL[NEXT_PREF[pref]]}.`}
+      >
+        <span className="themeGlyph" aria-hidden="true" />
+        {PREF_LABEL[pref]}
       </button>
 
       <button

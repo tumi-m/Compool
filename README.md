@@ -256,6 +256,28 @@ sit behind `no-preference` as well, because for them "stopped" has to mean
 "drawn at the current value", not "jumped to the end". Nothing loops while the
 system is idle. `test/e2e/motion.e2e.ts` holds all of that in a real browser.
 
+## The journey
+
+A first visit lands on a dashboard about a team nobody has met, so the pool page
+opens with **Get started**: five steps from preview to pooled — connect, run,
+plan, preload, open a support page. Each ticks from real workspace state, never
+from a click, so it cannot claim progress that did not happen; the next step is
+the only one with a button, and the card can be put away. Every page ends with
+**Next**, so none is a dead end, and the path visits every page once before
+coming back to the pool. Both live in `src/lib/journey.ts`, with tests.
+
+## Themes
+
+- **Light, Dark or Auto.** Auto follows the system as it changes, not only at
+  first paint. The choice is a labelled control, not a pun.
+- **One visual language.** Every heading uses one display face (self-hosted), cards
+  share one radius and elevation, and the dashboard and the support pages read
+  as one product.
+- **Page colours.** A creator picks Yellow, Coral, Sea, Violet or Ink for their
+  page, embed and button. Each is a palette solved per theme, not a free colour
+  picker, and the contrast test checks every one in both themes: words on the
+  button at 4.5:1 resting and hovered, the picked count's edge at 3:1.
+
 ## The five states
 
 Every data surface ships all five, and the interface has a way to reach each one

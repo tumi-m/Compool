@@ -33,7 +33,9 @@
      deep water, so the dark theme resolves it to something that reads. */
   --done: #0a5a66;
 
-  --display: Archivo, "Arial Narrow", Impact, sans-serif;
+  /* One display face for every heading in the journey — the dashboard and the
+     support pages used to speak in two. Self-hosted (src/app/fonts.ts). */
+  --display: var(--font-friendly), "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -55,7 +57,11 @@
   --tip-script: var(--font-script), "Brush Script MT", cursive;
   --r-soft: 20px;
 
-  --r: 4px;
+  --r: 6px;
+  /* Cards are softer than controls, so a page reads as surfaces holding
+     things rather than a grid of boxes. */
+  --r-card: 14px;
+  --elev: 0 1px 2px rgba(18, 34, 42, 0.04), 0 8px 24px -16px rgba(18, 34, 42, 0.22);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-settle: cubic-bezier(0.34, 1.3, 0.64, 1);
 }
@@ -91,6 +97,7 @@
 
   --on-deep: #e9f3f2;
   --stripe: rgba(233, 243, 242, 0.04);
+  --elev: 0 1px 0 rgba(233, 243, 242, 0.03), 0 10px 26px -16px rgba(0, 0, 0, 0.7);
   --done: #6fd9cf;
 }
 
@@ -123,8 +130,8 @@ select {
 }
 
 h1, h2, h3, h4 { margin: 0; line-height: 1.1; color: var(--ink-0); font-weight: 600; }
-h1 { font-family: var(--display); font-size: 31px; font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-size: 20px; }
+h1 { font-family: var(--display); font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-family: var(--display); font-size: 21px; font-weight: 700; letter-spacing: -0.015em; }
 h3 { font-size: 16px; }
 p { margin: 0 0 12px; max-width: 68ch; }
 a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
@@ -191,7 +198,7 @@ a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2
   align-items: center;
   gap: 9px;
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 20px;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -326,16 +333,26 @@ a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2
 }
 
 .themeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.24);
   color: var(--on-deep);
-  border-radius: var(--r);
-  height: 28px;
-  padding: 0 10px;
-  font-family: var(--mono);
-  font-size: 11px;
+  border-radius: 999px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px 0 10px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
+/* sun, moon, and half-and-half for "follow the system" */
+.themeGlyph { width: 12px; height: 12px; border-radius: 50%; flex: none; transition: box-shadow 260ms var(--ease-out), background 260ms var(--ease-out); }
+.themeToggle[data-pref='light'] .themeGlyph { background: currentColor; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22); }
+.themeToggle[data-pref='dark'] .themeGlyph { background: transparent; box-shadow: inset -4px -1px 0 0 currentColor; }
+.themeToggle[data-pref='auto'] .themeGlyph { border: 1.5px solid currentColor; background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
 .themeToggle:hover { background: rgba(255, 255, 255, 0.08); }
 
 /* ---- layout -------------------------------------------------------------- */
@@ -354,8 +371,9 @@ a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: 16px;
+  border-radius: var(--r-card);
+  padding: 18px;
+  box-shadow: var(--elev);
 }
 .panel > h2, .panel > h3 { margin-bottom: 4px; }
 
@@ -713,7 +731,10 @@ fieldset { border: 0; margin: 0; padding: 0; }
   align-items: center;
   justify-content: center;
 }
-.odoSep { display: inline-block; width: 0.34em; text-align: center; }
+/* A monospace "." is a full-width glyph; text-align cannot centre something
+   wider than its box, so it drifted right and left a gap before it ("10 .00").
+   Flex centring can. */
+.odoSep { display: inline-flex; justify-content: center; width: 0.34em; }
 .odoSuffix { font-size: 0.55em; color: var(--ink-2); margin-left: 0.2em; }
 
 /* ---- sparkline: draws itself once, on arrival ---------------------------- */
@@ -1631,7 +1652,7 @@ body.embedBody:has(.supportButton) { padding: 1px 2px; }
 
 /* Sizing lives in classes, not inline styles: an inline min-height beats this
    media query, which is how two dozen 28px controls survived the first pass. */
-.check { width: 16px; height: 16px; min-height: 0; flex: none; margin: 0; }
+.check { width: 18px; height: 18px; min-height: 0; flex: none; margin: 0; accent-color: var(--accent-fill); }
 .cellSelect { width: 58px; min-height: 30px; padding: 2px 4px; }
 label.row:has(.check) { cursor: pointer; }
 
@@ -1980,6 +2001,288 @@ label.row:has(.check) { cursor: pointer; }
   to { transform: scale(1); opacity: 1; }
 }
 .navHere { animation: slideIn 260ms var(--ease-out) both; }
+
+/* ---- the journey --------------------------------------------------------------
+   Getting started on the pool, a "next" at the foot of every page, and the
+   small pieces that keep a first visit moving. */
+
+.guide {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--elev);
+  padding: 20px 22px 14px;
+}
+.guideHead { display: flex; align-items: flex-start; gap: 16px; }
+.guideHead > div:first-child { flex: 1; min-width: 0; }
+.guideHead .tipEyebrow { margin-bottom: 4px; }
+.guideMeter { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-1); margin-top: 6px; }
+.guideBar { width: 120px; height: 8px; border-radius: 999px; background: var(--stripe); border: 1px solid var(--line); overflow: hidden; }
+.guideBar > span { display: block; height: 100%; border-radius: 999px; background: var(--water); transition: width 600ms var(--ease-settle); }
+.guideClose {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border-color: transparent;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink-2);
+}
+.guideClose:hover:not(:disabled) { color: var(--ink-0); background: var(--stripe); border-color: transparent; }
+.guideSteps {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.guideStep {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'tick text' '. act';
+  gap: 6px 10px;
+  align-content: start;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid transparent;
+}
+.guideStep[data-next='true'] { border-color: var(--water); background: var(--foam); }
+.guideStep[data-done='true'] .guideText strong { color: var(--ink-1); }
+.guideTick {
+  grid-area: tick;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-1);
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+}
+.guideStep[data-done='true'] .guideTick { border-color: var(--water); }
+.guideStep[data-done='true'] .checkDraw { margin: 0; }
+.guideText { grid-area: text; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.guideText strong { font-size: 13.5px; color: var(--ink-0); line-height: 1.3; }
+.guideText span { font-size: 12px; color: var(--ink-1); line-height: 1.4; }
+.guideStep > .btn, .guideStep > button { grid-area: act; justify-self: start; }
+@media (max-width: 1100px) {
+  .guideSteps { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+}
+@media (max-width: 640px) {
+  .guide { padding: 16px 14px 12px; }
+  .guideHead { flex-wrap: wrap; }
+  .guideMeter { order: 3; width: 100%; margin-top: 0; }
+  .guideBar { flex: 1; }
+  .guideSteps { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .guideStep { padding: 10px 12px; }
+}
+
+/* Next: the foot of every page. */
+.nextStep {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'label title arrow' 'label pitch arrow';
+  align-items: center;
+  gap: 2px 16px;
+  margin-top: 8px;
+  padding: 16px 20px;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--elev);
+  color: var(--ink-0);
+  text-decoration: none;
+  transition: border-color 160ms var(--ease-out), transform 200ms var(--ease-settle);
+}
+.nextStep:hover { border-color: var(--water); transform: translateY(-1px); }
+.nextStepLabel {
+  grid-area: label;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding-right: 16px;
+  border-right: 1px solid var(--line);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.nextStepTitle { grid-area: title; font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+.nextStepPitch { grid-area: pitch; font-size: 13px; color: var(--ink-1); }
+.nextStepArrow { grid-area: arrow; font-size: 22px; color: var(--link); transition: transform 200ms var(--ease-settle); }
+.nextStep:hover .nextStepArrow { transform: translateX(4px); }
+
+/* The pool's run bar: say what the buttons do before asking for a click. */
+.runBar {
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--panel);
+  box-shadow: var(--elev);
+  scroll-margin-top: 16px;
+}
+.runBarText { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.runBarText strong { font-size: 14px; }
+.runBarText .hint { margin: 0; }
+.runBarLabel { margin: 0; font-size: 12px; color: var(--ink-1); }
+@media (max-width: 640px) {
+  .runBar { padding: 12px; }
+}
+
+/* An empty state that says what to do about it. */
+.emptyAct { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.emptyAct .hint { margin: 0; }
+
+/* Preview-only controls, kept away from the product's own. */
+.previewTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+}
+.previewTools h2 { font-size: 15px; }
+.previewTools .hint { margin: 2px 0 0; }
+
+/* Connect: grouped by class, contents aligned to the top of each card. */
+.connectGroupHead { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.connectGroupHead .hint { margin: 0; }
+.connectCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 0;
+  padding: 16px;
+  transition: border-color 140ms var(--ease-out), transform 200ms var(--ease-settle), box-shadow 200ms var(--ease-out);
+}
+.connectCard:hover:not(:disabled) { background: var(--panel); border-color: var(--water); transform: translateY(-1px); }
+.connectCard[aria-pressed='true'] { border-color: var(--water); box-shadow: 0 0 0 2px var(--water), var(--elev); }
+/* Badges keep their own width inside the column, and every group keeps one
+   card width — auto-fit stretched a lone card across the whole row. */
+.connectCard > .badge { align-self: flex-start; }
+.connectGroup .cols3 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* The masthead's groups, visible on wide screens too. */
+.navGroup { display: inline-flex; gap: 2px; }
+.navGroup + .navGroup { margin-left: 6px; padding-left: 8px; border-left: 1px solid rgba(255, 255, 255, 0.16); }
+
+/* ---- page colours -------------------------------------------------------------
+   A creator's page colour, as a palette solved per theme. The contrast test
+   reads these blocks: words on the button at 4.5:1 resting and hovered, and
+   the picked count's edge at 3:1 against the card. */
+
+/* Yellow restated, so a yellow element nested inside another colour (a swatch
+   in the picker) is yellow rather than inheriting its surroundings. */
+[data-tip-theme='yellow'] {
+  --cta: #ffdd00;
+  --cta-hover: #f2d100;
+  --on-cta: #0d0c22;
+  --cta-wash: #fffbe5;
+  --cta-edge: #f6e58d;
+  --pick-ring: #12222a;
+}
+[data-tip-theme='coral'] {
+  --cta: #ff6b5b;
+  --cta-hover: #ff8576;
+  --on-cta: #1a0b08;
+  --cta-wash: #fff1ee;
+  --cta-edge: #ffc6bd;
+  --pick-ring: #12222a;
+}
+[data-tip-theme='sea'] {
+  --cta: #2ec4b6;
+  --cta-hover: #4dd2c6;
+  --on-cta: #062a27;
+  --cta-wash: #e7f8f6;
+  --cta-edge: #a5e5de;
+  --pick-ring: #12222a;
+}
+[data-tip-theme='violet'] {
+  --cta: #6a4cf0;
+  --cta-hover: #5b3de0;
+  --on-cta: #ffffff;
+  --cta-wash: #f2eeff;
+  --cta-edge: #cfc3ff;
+  --pick-ring: #6a4cf0;
+}
+[data-tip-theme='ink'] {
+  --cta: #12222a;
+  --cta-hover: #24363f;
+  --on-cta: #ffffff;
+  --cta-wash: #eef1f2;
+  --cta-edge: #cfd6d9;
+  --pick-ring: #12222a;
+}
+:root[data-theme='dark'] [data-tip-theme='yellow'] {
+  --cta-hover: #ffe74d;
+  --cta-wash: #22220f;
+  --cta-edge: #4d4719;
+  --pick-ring: #ffdd00;
+}
+:root[data-theme='dark'] [data-tip-theme='coral'] {
+  --cta-wash: #2a1714;
+  --cta-edge: #5a2a22;
+  --pick-ring: #ff6b5b;
+}
+:root[data-theme='dark'] [data-tip-theme='sea'] {
+  --cta-wash: #0f2a28;
+  --cta-edge: #1f5550;
+  --pick-ring: #2ec4b6;
+}
+:root[data-theme='dark'] [data-tip-theme='violet'] {
+  --cta: #9b87ff;
+  --cta-hover: #b1a1ff;
+  --on-cta: #120a33;
+  --cta-wash: #1d1838;
+  --cta-edge: #3e3477;
+  --pick-ring: #9b87ff;
+}
+:root[data-theme='dark'] [data-tip-theme='ink'] {
+  --cta: #e9f3f2;
+  --cta-hover: #ffffff;
+  --on-cta: #06181e;
+  --cta-wash: #14282e;
+  --cta-edge: #2a4148;
+  --pick-ring: #e9f3f2;
+}
+
+/* The page-colour picker. */
+.fieldLegend { display: block; font-size: 12px; font-weight: 600; color: var(--ink-1); margin-bottom: 6px; padding: 0; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-0);
+  cursor: pointer;
+}
+.swatch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.swatchChip { width: 22px; height: 22px; border-radius: 50%; background: var(--cta); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.swatch:has(input:checked) { border-color: var(--ink-0); box-shadow: 0 0 0 1px var(--ink-0); }
+.swatch:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* The skip target takes focus without drawing a ring round the whole page. */
 main:focus { outline: none; }

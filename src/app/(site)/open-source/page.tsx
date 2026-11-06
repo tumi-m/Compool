@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { INTEGRATIONS, ROLE_COPY, clientSnippet, type IntegrationRole } from '@/lib/integrations/catalog';
 import { ScrollSteps } from '@/components/motion/ScrollSteps';
+import { NextStep } from '@/components/NextStep';
 
 const ROLES: IntegrationRole[] = ['runtime', 'gateway', 'client'];
 
@@ -108,6 +109,7 @@ export default function OpenSourcePage() {
           a proprietary webfont is a licensing problem for everyone who self-hosts it.
         </p>
       </section>
+      <NextStep from="/open-source" />
     </div>
   );
 }

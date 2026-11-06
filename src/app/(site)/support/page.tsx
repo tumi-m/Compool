@@ -13,6 +13,8 @@ import { useToast } from '@/components/Toaster';
 import { DEFAULT_UNIT, describeTokens, isUnitId, unit, unitCostUsd, unitPhrase, UNITS } from '@/lib/support/units';
 import { tokens as fmtTokens, usd } from '@/lib/format';
 import { Odometer } from '@/components/motion/Odometer';
+import { DEFAULT_TIP_THEME, TIP_THEMES } from '@/lib/support/theme';
+import { NextStep } from '@/components/NextStep';
 
 /** The creator's side: turn it on, say what it is for, take the snippet. */
 export default function SupportPage() {
@@ -91,7 +93,7 @@ export default function SupportPage() {
   const snippet = embedSnippet(origin, handleOk ? p.handle : 'your-handle', opts);
 
   return (
-    <div className="stackv" style={{ gap: 18 }}>
+    <div className="stackv" style={{ gap: 18 }} data-tip-theme={p.theme}>
       <section className="tipHero">
         <h1>Make the thing. Let people fuel the runs.</h1>
         <p>
@@ -220,6 +222,28 @@ export default function SupportPage() {
               </select>
             </div>
           </div>
+
+          <fieldset className="field">
+            <legend className="fieldLegend">Page colour</legend>
+            <div className="swatches">
+              {TIP_THEMES.map((th) => (
+                <label key={th.id} className="swatch" data-tip-theme={th.id}>
+                  <input
+                    type="radio"
+                    name="tip-theme"
+                    value={th.id}
+                    checked={(p.theme ?? DEFAULT_TIP_THEME) === th.id}
+                    onChange={() => set({ theme: th.id })}
+                  />
+                  <span className="swatchChip" aria-hidden="true" />
+                  {th.label}
+                </label>
+              ))}
+            </div>
+            <div className="hint" style={{ marginTop: 4 }}>
+              Your page, your embed and its button. Every colour is checked for readable text, light and dark.
+            </div>
+          </fieldset>
 
           <div className="field">
             <label htmlFor="unit">What one gift buys</label>
@@ -403,6 +427,7 @@ export default function SupportPage() {
                   payLink={p.payLink}
                   variant={opts.variant}
                   unitId={myUnit}
+                  theme={p.theme}
                   showSupporters={opts.showSupporters}
                   showGoal={opts.showGoal}
                   now={now}
@@ -479,6 +504,7 @@ export default function SupportPage() {
         </div>
       </div>
 
+      <NextStep from="/support" />
     </div>
   );
 }

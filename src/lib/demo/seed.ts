@@ -15,6 +15,7 @@ import type { Rung } from '../ladder/rungs';
 import type { Idea } from '../orchestrate/triage';
 import type { Goal, Pledge } from '../support/pledge';
 import type { UnitId } from '../support/units';
+import type { TipTheme } from '../support/theme';
 
 export const ME = 'user_me';
 
@@ -32,6 +33,8 @@ export interface SupportProfile {
    * why a tip jar converts. Optional so profiles saved before it still load.
    */
   unitId?: UnitId;
+  /** The page's colour. Optional, so profiles saved before it still load. */
+  theme?: TipTheme;
   /**
    * The creator's own payment link — Stripe, Ko-fi, GitHub Sponsors, anything.
    * TIDEPOOL links out to it and never handles the money.

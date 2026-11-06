@@ -11,6 +11,7 @@ import { Sparkline } from '@/components/motion/Sparkline';
 import { claim, complete, release, settleStates, progress, type Task } from '@/lib/room/graph';
 import type { RoomEvent } from '@/lib/room/events';
 import { clockAt, usd } from '@/lib/format';
+import { NextStep } from '@/components/NextStep';
 
 const ROOM_ID = 'harbour';
 
@@ -236,7 +237,7 @@ export default function RoomPage() {
         <section className="panel stackv">
           <div className="spread">
             <h2>Output</h2>
-            <span className="badge">{events.length} events · seq {lastSeq.current}</span>
+            <span className="badge">{events.length} {events.length === 1 ? 'event' : 'events'} · seq {lastSeq.current}</span>
           </div>
           <div style={{ minHeight: 132, fontSize: 13, lineHeight: 1.6 }}>
             {text ? (
@@ -301,6 +302,7 @@ export default function RoomPage() {
         the append-only record plus one Redis channel per room; <code>src/lib/room/registry.ts</code> is the only
         file that changes. <Link href="/docs">How the rest of it fits →</Link>
       </div>
+      <NextStep from="/room" />
     </div>
   );
 }

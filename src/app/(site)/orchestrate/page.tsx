@@ -9,6 +9,7 @@ import { TIER_COPY, type Tier } from '@/lib/ladder/rungs';
 import { tokens } from '@/lib/format';
 import { Odometer } from '@/components/motion/Odometer';
 import { useFlip } from '@/components/motion/useFlip';
+import { NextStep } from '@/components/NextStep';
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -301,6 +302,7 @@ export default function OrchestratePage() {
           on its own while you watch it. <Link href="/models">See what is available right now →</Link>
         </p>
       </section>
+      <NextStep from="/orchestrate" />
     </div>
   );
 }

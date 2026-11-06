@@ -7,6 +7,7 @@ import { ME, nextId, useWorkspace } from '@/components/WorkspaceProvider';
 import { register, freshness } from '@/lib/policy/register';
 import { INTEGRATIONS } from '@/lib/integrations/catalog';
 import type { CapacityClass, CapacitySource } from '@/lib/types';
+import { NextStep } from '@/components/NextStep';
 
 type Choice = {
   key: string;
@@ -65,6 +66,13 @@ function choices(): Choice[] {
 }
 
 const VAULT_LIVE = false; // flips when KMS_KEY_ID and the gateway are configured
+
+/** Sources grouped by what their class allows, because that is the decision. */
+const CLASS_GROUPS = [
+  { cls: 'A', title: 'Metered keys', line: 'Pool across people. Encrypted at rest, used only at dispatch.' },
+  { cls: 'B', title: 'Owned compute', line: 'Your own hardware. Pools across people; no vendor question.' },
+  { cls: 'C', title: 'Personal seats', line: 'Only ever yours. Runs on your machine and never joins the pool.' },
+] as const;
 
 export default function ConnectPage() {
   const { ws, addSource } = useWorkspace();
@@ -153,50 +161,50 @@ export default function ConnectPage() {
         simulated headroom, which is enough to exercise routing, metering and preload end to end.
       </div>
 
-      <section>
+      <section className="stackv" style={{ gap: 18 }}>
         <h2>Click to connect</h2>
-        <div className="grid cols3" style={{ marginTop: 10 }}>
-          {all.map((c) => {
-            const p = register[c.provider];
-            const fresh = p ? freshness(p) : 'unverified';
-            const already = connected.has(c.credentialTypeId);
-            const selected = pick?.key === c.key;
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => { setPick(selected ? null : c); setLabel(''); setDone(null); }}
-                aria-pressed={selected}
-                className="panel"
-                style={{
-                  textAlign: 'left',
-                  display: 'block',
-                  minHeight: 0,
-                  borderColor: selected ? 'var(--water)' : undefined,
-                  borderWidth: selected ? 2 : 1,
-                  padding: 14,
-                }}
-              >
-                <div className="row" style={{ justifyContent: 'space-between' }}>
-                  <span className={`badge class${c.cls}`}>class {c.cls}</span>
-                  {already ? (
-                    <span className="badge water landIn">
-                      <svg className="checkDraw" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M3 8.5 6.5 12 13 4.5" pathLength={1} />
-                      </svg>
-                      connected
-                    </span>
-                  ) : null}
-                </div>
-                <div style={{ fontWeight: 600, margin: '9px 0 4px' }}>{c.name}</div>
-                <div className="hint">{c.line}</div>
-                {fresh !== 'fresh' ? (
-                  <div className="badge shallow" style={{ marginTop: 9 }}>policy {fresh.replace('_', ' ')}</div>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+        {CLASS_GROUPS.map((g) => (
+          <div key={g.cls} className="connectGroup">
+            <div className="connectGroupHead">
+              <h3>{g.title}</h3>
+              <span className="hint">{g.line}</span>
+            </div>
+            <div className="grid cols3">
+              {all.filter((c) => c.cls === g.cls).map((c) => {
+                const p = register[c.provider];
+                const fresh = p ? freshness(p) : 'unverified';
+                const already = connected.has(c.credentialTypeId);
+                const selected = pick?.key === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => { setPick(selected ? null : c); setLabel(''); setDone(null); }}
+                    aria-pressed={selected}
+                    className="panel connectCard"
+                  >
+                    <div className="row" style={{ justifyContent: 'space-between' }}>
+                      <span className={`badge class${c.cls}`}>class {c.cls}</span>
+                      {already ? (
+                        <span className="badge water landIn">
+                          <svg className="checkDraw" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M3 8.5 6.5 12 13 4.5" pathLength={1} />
+                          </svg>
+                          connected
+                        </span>
+                      ) : null}
+                    </div>
+                    <div style={{ fontWeight: 600, margin: '9px 0 4px' }}>{c.name}</div>
+                    <div className="hint">{c.line}</div>
+                    {fresh !== 'fresh' ? (
+                      <div className="badge shallow" style={{ marginTop: 9 }}>policy {fresh.replace('_', ' ')}</div>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
       {pick ? (
@@ -294,6 +302,7 @@ export default function ConnectPage() {
           run. <Link href="/open-source">See the open-source page →</Link>
         </p>
       </section>
+      <NextStep from="/connect" />
     </div>
   );
 }

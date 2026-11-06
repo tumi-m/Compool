@@ -94,9 +94,14 @@ for (const [route] of routes) {
   // does not, which makes the subtraction negative and the number meaningless.
   const mine = chunksOf(route).filter((c) => !own.has(c));
   const shared = chunksOf(route).filter((c) => own.has(c));
+  // What a visitor actually downloads for this route: its shell plus its own
+  // chunks, each counted once. Summing the page's own manifest instead made a
+  // page "grow" whenever it started referencing a chunk the shell already
+  // loads (next/link, say) — which costs nobody a byte.
+  const total = [...new Set([...own, ...chunksOf(route)])].reduce((a, c) => a + gzOf(c), 0);
   rows.push({
     route,
-    total: +sizeOf(route).toFixed(1),
+    total: +total.toFixed(1),
     shared: +shared.reduce((a, c) => a + gzOf(c), 0).toFixed(1),
     own: +mine.reduce((a, c) => a + gzOf(c), 0).toFixed(1),
   });

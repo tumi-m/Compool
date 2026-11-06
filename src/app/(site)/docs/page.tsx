@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { register, freshness } from '@/lib/policy/register';
 import { ScrollSteps } from '@/components/motion/ScrollSteps';
+import { NextStep } from '@/components/NextStep';
 
 export const metadata = { title: 'Docs' };
 
@@ -213,6 +214,7 @@ vercel.json  ->  { "crons": [{ "path": "/api/cron/preload", "schedule": "0 1 * *
       </ul>
 
       <p><Link href="/">← Back to the pool</Link></p>
+      <NextStep from="/docs" />
     </div>
   );
 }

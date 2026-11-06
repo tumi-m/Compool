@@ -78,3 +78,18 @@ describe.each([
     }
   });
 });
+
+// A creator's page colour: each palette, in each theme, as the cascade resolves
+// it — the root tokens, then the colour's own block, then its dark overrides.
+describe.each(['yellow', 'coral', 'sea', 'violet', 'ink'])('page colour %s', (name) => {
+  const own = block(`[data-tip-theme='${name}']`);
+  const ownDark = block(`:root[data-theme='dark'] [data-tip-theme='${name}']`);
+  const resolved = { light: { ...light, ...own }, dark: { ...dark, ...own, ...ownDark } };
+
+  it.each(['light', 'dark'] as const)('reads in the %s theme', (mode) => {
+    const t = resolved[mode];
+    expect(ratio(t['on-cta'], t['cta']), 'words on the button').toBeGreaterThanOrEqual(4.5);
+    expect(ratio(t['on-cta'], t['cta-hover']), 'words on the hovered button').toBeGreaterThanOrEqual(4.5);
+    expect(ratio(t['pick-ring'], t['panel']), 'the picked count against the card').toBeGreaterThanOrEqual(3);
+  });
+});

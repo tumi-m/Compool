@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/Skeleton';
 import { VirtualList } from '@/components/VirtualList';
 import { BasinSkeleton, PanelSkeleton, LoadingRegion } from '@/components/Skeleton';
 import { Stack } from '@/components/Stack';
+import { Guide } from '@/components/Guide';
+import { NextStep } from '@/components/NextStep';
 import { Tide } from '@/components/Tide';
 import { ME, useWorkspace } from '@/components/WorkspaceProvider';
 import { useToast } from '@/components/Toaster';
@@ -169,9 +171,15 @@ export default function PoolPage() {
         </div>
       </div>
 
-      <div className="row" style={{ justifyContent: 'flex-end', marginTop: -8 }}>
+      <Guide ws={ws} onRun={() => fire('interactive')} />
+
+      <div className="row runBar" id="run">
+        <div className="runBarText">
+          <strong>Try the pool</strong>
+          <span className="hint">One run is routed, streamed and metered, end to end.</span>
+        </div>
         <div className="row poolControls">
-          <label htmlFor="preset" className="srOnly">Routing intent</label>
+          <label htmlFor="preset" className="runBarLabel">Routing</label>
           <select
             id="preset"
             value={ws.preset}
@@ -284,7 +292,10 @@ export default function PoolPage() {
           </div>
           <div style={{ marginTop: 10 }}>
             {ws.ledger.length === 0 ? (
-              <p className="hint">No runs yet. Chips appear the moment anyone spends anything.</p>
+              <div className="emptyAct">
+                <p className="hint">No runs yet. Chips appear the moment anyone spends anything.</p>
+                <button type="button" className="tiny" onClick={() => fire('interactive')} disabled={busy}>Make the first run</button>
+              </div>
             ) : (
               <Stack positions={pos} users={ws.users} />
             )}
@@ -366,16 +377,23 @@ export default function PoolPage() {
             budget left {budgetRemainingUsd === null ? 'uncapped' : usd(budgetRemainingUsd)} · empties in {duration(emptyIn)}
             {budgetResetsAt ? <> · resets {clockAt(budgetResetsAt)}</> : null}
           </span>
-          <span style={{ marginLeft: 'auto' }} className="row">
-            <button type="button" className="tiny ghost" onClick={saturate}>
-              Simulate a full hackathon
-            </button>
-            <button type="button" className="tiny ghost" onClick={reseed}>
-              Reset preview workspace
-            </button>
-          </span>
         </div>
       </section>
+
+      <section className="previewTools" aria-labelledby="preview-tools">
+        <div>
+          <h2 id="preview-tools">Preview tools</h2>
+          <p className="hint">
+            This deployment runs on a simulated workspace. Push it to the edge, or put it back how it started.
+          </p>
+        </div>
+        <div className="row">
+          <button type="button" className="tiny" onClick={saturate}>Simulate a full hackathon</button>
+          <button type="button" className="tiny ghost" onClick={reseed}>Reset preview workspace</button>
+        </div>
+      </section>
+
+      <NextStep from="/" />
     </div>
   );
 }

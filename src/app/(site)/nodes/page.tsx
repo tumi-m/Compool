@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Drain } from '@/components/motion/Drain';
 import { useWorkspace, ME } from '@/components/WorkspaceProvider';
 import { relative } from '@/lib/format';
+import { NextStep } from '@/components/NextStep';
 
 const MODES = ['off', 'offer', 'auto'] as const;
 /** A pairing code is good for ten minutes from when it is shown. */
@@ -105,6 +106,7 @@ tidepool pair ${code}`;
         </section>
       ) : null}
 
+      <h2>Your machines</h2>
       <div className="grid cols2 riseIn">
         {mine.map((n) => {
           const cls = ws.sources.filter((s) => s.nodeId === n.id && s.status !== 'revoked');
@@ -183,6 +185,7 @@ tidepool pair ${code}`;
           deployment. <Link href="/docs">The rest of the policy story →</Link>
         </p>
       </section>
+      <NextStep from="/nodes" />
     </div>
   );
 }
