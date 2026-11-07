@@ -3,6 +3,9 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Nothing here uses next/image, so the optimiser endpoint only ever served as
+  // attack surface — it was the target of GHSA-2464-fhr4-w9xw. Off.
+  images: { unoptimized: true },
   async headers() {
     return [
       {

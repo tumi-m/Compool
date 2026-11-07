@@ -129,3 +129,18 @@ export function linkSnippet(origin: string, handle: string): string {
   const base = origin.replace(/\/+$/, '');
   return `[Buy me compute](${base}/c/${handle})`;
 }
+
+/**
+ * The deployment origin a creator types in, reduced to just its origin. It is
+ * interpolated into an HTML snippet they paste into their own site, so it is
+ * parsed rather than trusted: a stray quote used to land inside the src
+ * attribute as typed.
+ */
+export function originOf(input: string): string | null {
+  try {
+    const u = new URL(input.trim());
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.origin : null;
+  } catch {
+    return null;
+  }
+}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useWorkspace, ME } from '@/components/WorkspaceProvider';
 import { SupportWidget, firstName } from '@/components/support/SupportWidget';
 import {
-  DEFAULT_EMBED, embedSize, embedSnippet, isValidHandle, linkSnippet, normaliseHandle,
+  DEFAULT_EMBED, embedSize, embedSnippet, isValidHandle, linkSnippet, normaliseHandle, originOf,
   type EmbedOptions, type EmbedVariant,
 } from '@/lib/support/embed';
 import { MAX_REPLY, giftableSources, totals, type Pledge } from '@/lib/support/pledge';
@@ -14,6 +14,7 @@ import { DEFAULT_UNIT, describeTokens, isUnitId, unit, unitCostUsd, unitPhrase, 
 import { tokens as fmtTokens, usd } from '@/lib/format';
 import { Odometer } from '@/components/motion/Odometer';
 import { DEFAULT_TIP_THEME, TIP_THEMES } from '@/lib/support/theme';
+import { safePayLink } from '@/lib/support/paylink';
 import { NextStep } from '@/components/NextStep';
 
 /** The creator's side: turn it on, say what it is for, take the snippet. */
@@ -90,7 +91,11 @@ export default function SupportPage() {
   };
 
   const myUnit = p.unitId ?? DEFAULT_UNIT;
-  const snippet = embedSnippet(origin, handleOk ? p.handle : 'your-handle', opts);
+  // Parsed, not used as typed: the snippet is HTML a creator pastes into their site.
+  const base = originOf(origin);
+  const shownOrigin = base ?? 'https://your-deployment.vercel.app';
+  const snippet = embedSnippet(shownOrigin, handleOk ? p.handle : 'your-handle', opts);
+  const payLinkBad = Boolean(p.payLink && !safePayLink(p.payLink));
 
   return (
     <div className="stackv" style={{ gap: 18 }} data-tip-theme={p.theme}>
@@ -105,7 +110,7 @@ export default function SupportPage() {
           <button
             type="button"
             className="pillBtn"
-            onClick={() => copy(`${origin.replace(/\/+$/, '')}/c/${p.handle}`, 'hero')}
+            onClick={() => copy(`${shownOrigin}/c/${p.handle}`, 'hero')}
             disabled={!handleOk}
           >
             {copied === 'hero' ? 'Copied' : 'Copy your link'}
@@ -271,9 +276,16 @@ export default function SupportPage() {
               id="pay"
               type="text"
               value={p.payLink ?? ''}
-              placeholder="https://buy.stripe.com/… · ko-fi.com/… · github.com/sponsors/…"
+              placeholder="https://ko-fi.com/… · https://buy.stripe.com/…"
               onChange={(e) => set({ payLink: e.target.value.trim() || null })}
+              aria-invalid={payLinkBad}
+              aria-describedby={payLinkBad ? 'pay-error' : undefined}
             />
+            {payLinkBad ? (
+              <div id="pay-error" className="hint" style={{ color: 'var(--coral-ink)', marginTop: 4 }}>
+                Payment links must start with https:// — until it does, supporters are offered a pledge instead.
+              </div>
+            ) : null}
           </div>
 
           <div className="notice">
@@ -404,7 +416,7 @@ export default function SupportPage() {
         <section className="panel">
           <h2>For a talk</h2>
           <p className="hint" style={{ marginBottom: 0 }}>
-            Put <code>{origin.replace(/^https?:\/\//, '')}/c/{handleOk ? p.handle : 'your-handle'}</code> on
+            Put <code>{shownOrigin.replace(/^https?:\/\//, '')}/c/{handleOk ? p.handle : 'your-handle'}</code> on
             your last slide. The wall updates while you are still on stage, and the units mean something to an
             audience that has never thought about a token in its life: {UNITS.map((u) => u.buys).join(', ')}.
           </p>
@@ -476,7 +488,19 @@ export default function SupportPage() {
 
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="origin">Your deployment</label>
-              <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} />
+              <input
+                id="origin"
+                type="text"
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                aria-invalid={!base}
+                aria-describedby={base ? undefined : 'origin-error'}
+              />
+              {!base ? (
+                <div id="origin-error" className="hint" style={{ color: 'var(--coral-ink)', marginTop: 4 }}>
+                  That is not a web address, so the snippet below uses a placeholder.
+                </div>
+              ) : null}
             </div>
 
             <pre className="snippetBox">{snippet}</pre>
@@ -489,7 +513,7 @@ export default function SupportPage() {
               <button type="button" onClick={() => copy(snippet, 'iframe')}>
                 {copied === 'iframe' ? 'Copied' : 'Copy the embed'}
               </button>
-              <button type="button" className="ghost" onClick={() => copy(linkSnippet(origin, p.handle), 'link')}>
+              <button type="button" className="ghost" onClick={() => copy(linkSnippet(shownOrigin, p.handle), 'link')}>
                 {copied === 'link' ? 'Copied' : 'Copy a plain link'}
               </button>
             </div>

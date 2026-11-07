@@ -87,7 +87,10 @@ cache warm of the files you will open first — and they run while the tide is i
   proposes your own quietest stretch from the observed hourly load. 3am is the
   default, not the answer.
 - Each scheduler run dispatches only items whose own local window is open at that
-  moment. How often it runs decides whose 3am it covers:
+  moment. **Set `CRON_SECRET` first** — the endpoint refuses every call until it
+  is set, and Vercel does not create it for you. Each dispatch carries an
+  idempotency key per item per window, so overlapping schedulers cannot run the
+  same window twice. How often it runs decides whose 3am it covers:
   - **Vercel Hobby (free)** allows one cron run a day, so `vercel.json` runs it at
     **01:00 UTC** — 03:00 in UTC+2, and inside the three-hour window for UTC+0 to
     UTC+2. To aim it at your own night, set the hour to your 3am expressed in UTC.

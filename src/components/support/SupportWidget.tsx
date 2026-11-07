@@ -8,6 +8,7 @@ import { relative, usd } from '@/lib/format';
 import { steamLevel } from '@/lib/motion';
 import { Odometer } from '@/components/motion/Odometer';
 import type { TipTheme } from '@/lib/support/theme';
+import { safePayLink } from '@/lib/support/paylink';
 
 /** Quotes are at the going rate for a capable model, from the ledger's own book. */
 const QUOTE_MODEL = 'anthropic:workhorse';
@@ -40,7 +41,7 @@ export function SupportWidget({
   blurb,
   goal,
   pledges,
-  payLink,
+  payLink: rawPayLink,
   variant = 'card',
   showSupporters = true,
   showGoal = true,
@@ -82,6 +83,10 @@ export function SupportWidget({
   const [sent, setSent] = useState(false);
 
   const first = firstName(displayName);
+  // Checked here, where it is used, as well as where it is typed: whatever
+  // reaches this widget — a saved profile, later a profile served by the
+  // gateway — only an https payment page is ever opened.
+  const payLink = rawPayLink ? safePayLink(rawPayLink) : null;
 
   if (variant === 'button') {
     return (

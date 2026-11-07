@@ -1,4 +1,4 @@
-import { roomLog } from '@/lib/room/registry';
+import { isRoomId, openRoom } from '@/lib/room/registry';
 import { toFrame } from '@/lib/room/events';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,10 @@ const HEARTBEAT_MS = 15_000;
  */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const log = roomLog(id);
+  if (!isRoomId(id)) return new Response('no such room', { status: 404 });
+  // A live subscription is a reason to open a room; the registry bounds how many.
+  const log = openRoom(id);
+  if (!log) return new Response('too many open rooms on this instance', { status: 503 });
 
   // A reconnecting client tells us the last event it actually saw, either in the
   // standard header or as a query param for clients that cannot set headers.

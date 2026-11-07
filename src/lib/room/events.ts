@@ -48,11 +48,27 @@ export function isRunEventType(v: unknown): v is RunEventType {
   return typeof v === 'string' && (EVENT_TYPES as readonly string[]).includes(v);
 }
 
+/** No real event comes near these; anything past them is an attempt to fill memory. */
+export const MAX_PAYLOAD_BYTES = 16 * 1024;
+export const MAX_FIELD_CHARS = 128;
+
+const tooLong = (v: unknown) => typeof v === 'string' && v.length > MAX_FIELD_CHARS;
+
 /** Boundary validation. Anything that does not parse is refused, never coerced. */
 export function parseEvent(input: unknown, seq: number): RoomEvent | null {
   if (typeof input !== 'object' || input === null) return null;
   const o = input as Record<string, unknown>;
   if (!isRunEventType(o.type)) return null;
+  if (tooLong(o.runId) || tooLong(o.actor) || tooLong(o.at)) return null;
+  if (o.payload !== undefined) {
+    let size: number;
+    try {
+      size = JSON.stringify(o.payload)?.length ?? 0;
+    } catch {
+      return null; // not serialisable, so it could never be sent to a subscriber anyway
+    }
+    if (size > MAX_PAYLOAD_BYTES) return null;
+  }
   return {
     seq,
     type: o.type,
@@ -77,6 +93,8 @@ export class RoomLog {
   private events: RoomEvent[] = [];
   private subscribers = new Set<(e: RoomEvent) => void>();
   private seq = 0;
+  /** When this room last saw a write, so the registry can evict the idlest. */
+  lastActive = Date.now();
 
   constructor(private readonly cap = 2000) {}
 
@@ -84,6 +102,7 @@ export class RoomLog {
     const e = parseEvent(input, this.seq + 1);
     if (!e) return null;
     this.seq += 1;
+    this.lastActive = Date.now();
     this.events.push(e);
     if (this.events.length > this.cap) this.events.splice(0, this.events.length - this.cap);
     for (const fn of this.subscribers) {

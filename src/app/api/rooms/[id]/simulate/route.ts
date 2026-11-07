@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { roomLog } from '@/lib/room/registry';
+import { isRoomId, openRoom } from '@/lib/room/registry';
 import { shouldEmit, type ThrottleState } from '@/lib/room/events';
 
 export const dynamic = 'force-dynamic';
@@ -29,8 +29,13 @@ const CHUNKS = [
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const log = roomLog(id);
+  if (!isRoomId(id)) return NextResponse.json({ error: 'no such room' }, { status: 404 });
   const actor = new URL(req.url).searchParams.get('actor') ?? 'user_ada';
+  // The actor ends up in every event; a value the log would refuse would make
+  // this run silently write nothing.
+  if (!/^[a-z0-9_]{1,64}$/.test(actor)) return NextResponse.json({ error: 'invalid actor' }, { status: 400 });
+  const log = openRoom(id);
+  if (!log) return NextResponse.json({ error: 'too many open rooms on this instance' }, { status: 503 });
   const runId = `run_${Math.random().toString(36).slice(2, 9)}`;
   const throttle: ThrottleState = { lastAt: {} };
 

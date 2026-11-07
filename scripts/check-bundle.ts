@@ -32,8 +32,13 @@ import { join } from 'node:path';
  * by 0.5 KB (the near-empty embed shell went 99.6 -> 100.1 KB) while the app's
  * own share of the site shell shrank. A framework patch you must take is not
  * app bloat, so the line moved by exactly one KB and no further.
+ *
+ * It moved once more, to 122, for 15.5.29: the patch for an unauthenticated RCE
+ * in the image optimiser (GHSA-2464-fhr4-w9xw). Again the near-empty embed shell
+ * grew by the same 0.8 KB as the site shell (100.2 -> 101.0), so it is the
+ * framework's, and again by one KB and no further.
  */
-const SHARED_BUDGET_KB = 121;
+const SHARED_BUDGET_KB = 122;
 /** A single page's own code. Generous, but a page past it is doing too much. */
 const ROUTE_BUDGET_KB = 14;
 /** A regression larger than this fails the build. */

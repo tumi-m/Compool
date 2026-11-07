@@ -89,7 +89,9 @@ d('the journey', () => {
     await p.goto(`${BASE}/c/harbour`, { waitUntil: 'load' });
     const cta = p.locator('button.tipCta');
     await cta.waitFor();
-    expect(await cta.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 107, 91)');
+    // The saved colour arrives with hydration and the button eases into it, so
+    // wait for it to settle rather than sampling part-way through the fade.
+    await expect.poll(() => cta.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 107, 91)');
     await p.context().close();
   });
 });

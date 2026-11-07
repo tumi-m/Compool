@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { register } from '@/lib/policy/register';
-import { isWindowOpen, localParts, type PreloadItem } from '@/lib/preload/schedule';
+import { isWindowOpen, localParts, windowStartAt, type PreloadItem } from '@/lib/preload/schedule';
+import { bearerMatches } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,12 +23,21 @@ export const dynamic = 'force-dynamic';
  * plainly rather than pretending to have run anything.
  */
 export async function GET(req: Request) {
+  // Fail closed. This used to check the secret only when one was set, so a
+  // deployment without CRON_SECRET let anyone read the queue's titles and, once
+  // a queue and gateway were configured, dispatch it as often as they liked.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get('authorization');
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
+  if (!secret) {
+    return NextResponse.json(
+      {
+        error: 'CRON_SECRET is not set',
+        note: 'Set CRON_SECRET in the project’s environment variables. Vercel Cron and the GitHub workflow both send it as a bearer token; without it this endpoint will not run.',
+      },
+      { status: 503 },
+    );
+  }
+  if (!(await bearerMatches(req.headers.get('authorization'), secret))) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   const store = await loadQueue();
@@ -65,6 +75,10 @@ export async function GET(req: Request) {
         headers: {
           'content-type': 'application/json',
           authorization: `Bearer ${process.env.GATEWAY_SHARED_SECRET ?? ''}`,
+          // One key per item per window, so a retried cron, or the daily Vercel
+          // cron and the hourly workflow landing in the same window, cannot run
+          // the same work twice.
+          'idempotency-key': `preload:${item.id}:${new Date(windowStartAt(item, now)).toISOString().slice(0, 13)}`,
           // The gateway re-runs the guard against this register before executing.
           'x-tidepool-policy-version': String(Object.keys(register).length),
         },
